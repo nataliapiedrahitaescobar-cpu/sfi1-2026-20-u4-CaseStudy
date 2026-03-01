@@ -1,0 +1,17 @@
+{
+  "name": "sfi1-2026-20-u4-casestudy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bridgeClient.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "serialport": "^13.0.0",
+    "ws": "^8.19.0"
+  }
+}
