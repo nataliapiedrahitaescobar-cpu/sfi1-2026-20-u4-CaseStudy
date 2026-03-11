@@ -170,7 +170,7 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
        let circleResolution = int(map(mb.y, 0, height, 2, 10));
        
        //Radio según resolución en x
-       let radius = mb.x - width/2;
+       let radius = map(mb.x, -1024, 1024, 10, width/2);
        
        let angle = TAU / circleResolution;
        
