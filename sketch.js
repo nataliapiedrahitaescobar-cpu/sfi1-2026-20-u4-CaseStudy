@@ -157,10 +157,10 @@ function draw() {//Se ejecuta 60 veces por segundo.
 }
 
 function drawRunning() { //Ejecuta cada frame mientras la máquina de estados esté en estado_corriendo.
-   let mb = painter.rexData;//Busca que función dibuja el estado actual, se obtiene  los datos que llegaron del microbit.
+   let mb = painter.rxData;//Busca que función dibuja el estado actual, se obtiene  los datos que llegaron del microbit.
    
    
-   if (!mb || mb.ready) return;//Verifica si llegaron los datos.
+   if (!mb || !mb.ready) return;//Verifica si llegaron los datos.
 
    if(mb.btnA){
        push();//Guarda la configuración actual del dibujo.
@@ -170,7 +170,7 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
        let circleResolution = int(map(mb.y, 0, height, 2, 10));
        
        //Radio según resolución en x
-       let radius = map(mb.x, -1024, 1024, 10, width/2);
+       let radius = mb.x - width / 2;
        
        let angle = TAU / circleResolution;
        
