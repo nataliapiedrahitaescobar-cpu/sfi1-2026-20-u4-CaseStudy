@@ -162,7 +162,7 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
    
    if (!mb || !mb.ready) return;//Verifica si llegaron los datos.
 
-   if(mb.btnA){
+   if(true){
        push();//Guarda la configuración actual del dibujo.
        translate(width / 2, height / 2);
        
