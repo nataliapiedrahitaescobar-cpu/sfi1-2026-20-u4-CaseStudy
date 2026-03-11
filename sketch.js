@@ -157,22 +157,63 @@ function draw() {
 }
 
 function drawRunning() {
-    let mb = painter.rxData;
-    
-    if (!mb.ready) return;
-    line(mb.x, mb.y,mb.x+50,mb.y+50); //Dibuja una línea fija en el acelerómetro del microbit, para verificar que los datos se están recibiendo correctamente. 
-    
+   // Copy from P_2_0_02
+//
+// Generative Gestaltung – Creative Coding im Web
+// ISBN: 978-3-87439-902-9, First Edition, Hermann Schmidt, Mainz, 2018
+// Benedikt Groß, Hartmut Bohnacker, Julia Laub, Claudius Lazzeroni
+// with contributions by Joey Lee and Niels Poldervaart
+// Copyright 2018
+//
+// http://www.generative-gestaltung.de
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+function setup() {
+    createCanvas(720, 720);
+    noFill();
+    background(255);
+    strokeWeight(2);
+    stroke(0, 25);
+}
+
+function draw() {
     if (mb.btnA) {
-        let x = mb.x;
-        let y = mb.y;
         push();
-        translate(x, y);
-        rotate(radians(painter.angle));
-        stroke(painter.c);
-        line(0, 0, painter.lineSize, painter.lineSize);
-        painter.angle += 1;
+        translate(width / 2, height / 2);
+
+        // Debe mapearse al eje Y del acelerómetro.
+        let circleResolution = int(map(mb.y,-2048, 2047,2, 10));
+
+        // Debe mapearse al eje X del acelerómetro.
+        let radius = map(mb.x,-2048, 2047,-width/2, width/2);
+        let angle = TAU / circleResolution;
+
+        // Debe ser activado por el botón B del dispositivo.
+        if(mb.btnB) {
+        fill(34, 45, 122, 50);
+        } else {
+        noFill();
+        }
+
+        beginShape();
+        for (let i = 0; i <= circleResolution; i++) {
+        let x = cos(angle * i) * radius;
+        let y = sin(angle * i) * radius;
+        vertex(x, y);
+        }
+        endShape();
+
         pop();
     }
+}
 }
 
 function windowResized() {
