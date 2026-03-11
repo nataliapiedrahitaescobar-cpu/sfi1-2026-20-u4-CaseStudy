@@ -110,11 +110,11 @@ let bridge;
 let connectBtn;
 const renderer = new Map();
 
-function setup() {
+function setup() { //Crea el canvas, usa todo el tamaño de la ventana y pinta el fondo de blanco (255).
     createCanvas(windowWidth, windowHeight);
     background(255);
-    painter = new PainterTask();
-    bridge = new BridgeClient();
+    painter = new PainterTask(); //Es el objeto principal de la aplicación.
+    bridge = new BridgeClient(); //Puente de comunicación con el microbit.
 
     bridge.onConnect(() => {
         connectBtn.html("Disconnect");
@@ -130,7 +130,7 @@ function setup() {
         console.log("BRIDGE STATUS:", s.state, s.detail ?? "");
     });
 
-    bridge.onData((data) => {
+    bridge.onData((data) => { //Se ejecuta cada vez que llegan datos al microbit.
         painter.postEvent({
             type: EVENTS.DATA, payload: {
                 x: data.x,
@@ -148,49 +148,58 @@ function setup() {
         else bridge.open();
     });
 
-    renderer.set(painter.estado_corriendo, drawRunning);
+    renderer.set(painter.estado_corriendo, drawRunning); //Si el estado está corriendo, ejecuta el drawRunning.
 }
 
-function draw() {
-    painter.update();
+function draw() {//Se ejecuta 60 veces por segundo.
+    painter.update(); //Actualiza la máquina de estados.
     renderer.get(painter.state)?.();
 }
 
 function drawRunning() { //Ejecuta cada frame mientras la máquina de estados esté en estado_corriendo.
-   let mb = painter.rexData;
+   let mb = painter.rexData;//Busca que función dibuja el estado actual, se obtiene  los datos que llegaron del microbit.
+   
+   
+   if (!mb.ready) return;//Verifica si llegaron los datos.
 
-   if (!mb.ready) return;
+   if(mb.btnA){
+       push();//Guarda la configuración actual del dibujo.
+       translate(width / 2, height / 2);
+       
+       //Resolución del polígono según inclinación en y
+       let circleResolution = int(map(mb.y, 0, height, 2, 10));
+       
+       //Radio según resolución en x
+       let radius = mb.x - width/2;
+       
+       let angle = TAU / circleResolution;
+       
+       //Botón b activa relleno
+       if(mb.btnB){
+           fill(34,45,122,50);
+        }else {
+            noFill();
+        }
+        
+        beginShape();
+        for (let i = 0; i <= circleResolution; i++){
+         let x = cos(angle * i) * radius;
+         let y = sin(angle * i) * radius;
+         vertex(x,y);
+        }
 
-   push();
-   translate(width / 2, height / 2);
+     endShape();
 
-   //Resolución del polígono según inclinación en y
-   let circleResolution = int(map(mb.y, 0, height, 2, 10));
-
-   //Radio según resolución en x
-   let radius = mb.x - width/2;
-
-   let angle = TAU / circleResolution;
-
-   //Botón b activa relleno
-   if(mb.btnB){
-    fill(34,45,122,50);
-   }else {
-    noFill();
-   }
-
-   beginShape();
-
-   for (let i = 0; i <= circleResolution; i++){
-    let x = cos(angle * i) * radius;
-    let y = sin(angle * i) * radius;
-    vertex(x,y);
-   }
-
-   endShape();
-
-   pop();
+     pop();
+   } 
 }
+
+
+
+
+
+
+
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
