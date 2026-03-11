@@ -158,7 +158,7 @@ function draw() {//Se ejecuta 60 veces por segundo.
 
 function drawRunning() { //Ejecuta cada frame mientras la máquina de estados esté en estado_corriendo.
    let mb = painter.rxData;//Busca que función dibuja el estado actual, se obtiene  los datos que llegaron del microbit.
-   
+   console.log(mb.x, mb.y);
    
    if (!mb || !mb.ready) return;//Verifica si llegaron los datos.
 
