@@ -6,7 +6,8 @@ class ParseError extends Error { }
 //Interpreta el texto del hardware 
 function parseCsvLine(line) {
   const values = line.trim().split("|");
-  if (values.length !== 6) throw new ParseError(`Expected 6 values, got ${values.length}`);
+  if (values.length !== 6) throw ne
+ ParseError(`Expected 6 values, got ${values.length}`);
  
   const x = Number(values[1].split(":")[1]); //: Es la separación de la clave del valor.
   const y = Number(values[2].split(":")[1]);
@@ -21,6 +22,8 @@ function parseCsvLine(line) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) throw new ParseError("Invalid numeric data");
   if (x < -2048 || x > 2047 || y < -2048 || y > 2047) throw new ParseError("Out of expected range");
   if (!["true", "false"].includes(btnA) || !["true", "false"].includes(btnB)) throw new ParseError("Invalid button data");
+
+console.log(parseCsvLine("$T:45020|X:-245|Y:12|A:1|B:0|CHK:258"))
 
   return { x: x | 0, y: y | 0, btnA: btnA === "true", btnB: btnB === "true" };
 }

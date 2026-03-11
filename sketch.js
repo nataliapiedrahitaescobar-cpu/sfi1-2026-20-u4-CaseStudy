@@ -1,4 +1,7 @@
+// Maneja la conexión con el microbit, Recibe los datos del microbit y dibuja en pantalla con estos datos. Utiliza una máquina de estados para manejar la lógica de la aplicación.
+
 const EVENTS = {
+    //Definición de los eventos.
     CONNECT: "CONNECT",
     DISCONNECT: "DISCONNECT",
     DATA: "DATA",
@@ -10,13 +13,13 @@ class PainterTask extends FSMTask {
     constructor() {
         super();
 
-        this.c = color(181, 157, 0);
+        this.c = color(181, 157, 0); //Color inicial del dibujo. se actualiza al soltar el botón B del microbit, con un color aleatorio.
         this.lineSize = 100;
         this.angle = 0;
         this.clickPosX = 0;
         this.clickPosY = 0;
 
-        this.rxData = {
+        this.rxData = { //Objeto donde se guardan los datos del microbit, se actualizan en la función updateLogic.
             x: 0,
             y: 0,
             btnA: false,
@@ -25,10 +28,11 @@ class PainterTask extends FSMTask {
             prevB: false,
             ready: false
         };
-
+        //Es donde se guardan los datos recibidos del microbit, se actualizan en la función updateLogic.
         this.transitionTo(this.estado_esperando);
     }
-
+  
+    //Estado donde todavía no hay conexión con el microbit.
     estado_esperando = (ev) => {
         if (ev.type === "ENTRY") {
             cursor();
@@ -38,6 +42,7 @@ class PainterTask extends FSMTask {
         }
     };
 
+    //El microbit ya está conectado, se reciben los datos y se dibuja en pantalla.
     estado_corriendo = (ev) => {
         if (ev.type === "ENTRY") {
             noCursor();
@@ -55,12 +60,12 @@ class PainterTask extends FSMTask {
             };
         }
 
-        else if (ev.type === EVENTS.DISCONNECT) {
+        else if (ev.type === EVENTS.DISCONNECT) { //Cuando el bridge recibe los datos de desconexión, se vuelve al estado de espera.
             this.transitionTo(this.estado_esperando);
         }
 
         else if (ev.type === EVENTS.DATA) {
-            this.updateLogic(ev.payload);
+            this.updateLogic(ev.payload); //Se procesan los datos del microbit.
         }
 
         else if (ev.type === EVENTS.KEY_PRESSED) {
@@ -75,7 +80,7 @@ class PainterTask extends FSMTask {
             cursor();
         }
     };
-
+    //Convierte los valores del acelerómetro a coordenadas de la pantalla y maneja la lógica de los botones.
     updateLogic(data) {
         this.rxData.ready = true;
         this.rxData.x = map(data.x,-2048,2047,0,width);
@@ -153,9 +158,10 @@ function draw() {
 
 function drawRunning() {
     let mb = painter.rxData;
-
+    
     if (!mb.ready) return;
-
+    line(mb.x, mb.y,mb.x+50,mb.y+50); //Dibuja una línea fija en el acelerómetro del microbit, para verificar que los datos se están recibiendo correctamente. 
+    
     if (mb.btnA) {
         let x = mb.x;
         let y = mb.y;
