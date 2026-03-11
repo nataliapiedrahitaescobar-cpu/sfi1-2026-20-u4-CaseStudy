@@ -194,13 +194,13 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
    } 
 }
 
-
-
-
-
-
-
-
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
+
+
+
+
+
+
+
