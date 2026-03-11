@@ -160,7 +160,7 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
    let mb = painter.rexData;//Busca que función dibuja el estado actual, se obtiene  los datos que llegaron del microbit.
    
    
-   if (!mb.ready) return;//Verifica si llegaron los datos.
+   if (!mb || mb.ready) return;//Verifica si llegaron los datos.
 
    if(mb.btnA){
        push();//Guarda la configuración actual del dibujo.
