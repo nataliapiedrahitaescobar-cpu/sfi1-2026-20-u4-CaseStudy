@@ -1,5 +1,7 @@
 
 //   Uso:
+//     node bridgeServer.js
+//     node bridgeServer.js --device microbit
 //     node bridgeServer.js --device sim --wsPort 8081 --hz 30
 //     node bridgeServer.js --device microbit --wsPort 8081 --serialPort COM5 --baud 115200
 

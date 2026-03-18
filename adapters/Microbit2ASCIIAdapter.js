@@ -5,27 +5,58 @@ class ParseError extends Error { }
 
 //Interpreta el texto del hardware 
 function parseCsvLine(line) {
-  const values = line.trim().split("|");
-  if (values.length !== 6) throw ne
- ParseError(`Expected 6 values, got ${values.length}`);
- 
-  const x = Number(values[1].split(":")[1]); //: Es la separación de la clave del valor.
-  const y = Number(values[2].split(":")[1]);
-  const btnA = String(values[3].split(":")[1]);
-  const btnB = String(values[4].split(":")[1]);
-  const chk = Number(values[5].split(";")[1]);
-// values[1,2,3,4,5] acceden a una posiciión específica del arreglo, split(":")[1] obtiene el valor después de los dos puntos, y trim() elimina espacios en blanco.
- const calc = Math.abs(x) + Math.abs(y) + Number(btnA) + Number(btnB);
- if (calc !== chk){
-  throw new ParseError("Checksum mismatch");
- }
-  if (!Number.isFinite(x) || !Number.isFinite(y)) throw new ParseError("Invalid numeric data");
-  if (x < -2048 || x > 2047 || y < -2048 || y > 2047) throw new ParseError("Out of expected range");
-  if (!["true", "false"].includes(btnA) || !["true", "false"].includes(btnB)) throw new ParseError("Invalid button data");
+  line = line.trim();
 
-console.log(parseCsvLine("$T:45020|X:-245|Y:12|A:1|B:0|CHK:258"))
+  // 🔹 Validar inicio de trama
+  if (!line.startsWith("$")) {
+    throw new ParseError("Invalid start of frame");
+  }
 
-  return { x: x | 0, y: y | 0, btnA: btnA === "true", btnB: btnB === "true" };
+  const values = line.split("|");
+  if (values.length !== 6) {
+    throw new ParseError(`Expected 6 values, got ${values.length}`);
+  }
+
+  try {
+    const x = Number(values[1].split(":")[1]);
+    const y = Number(values[2].split(":")[1]);
+    const btnA = Number(values[3].split(":")[1]);
+    const btnB = Number(values[4].split(":")[1]);
+    const chk = Number(values[5].split(":")[1]);
+
+    // 🔹 Validar números
+    if (![x, y, btnA, btnB, chk].every(Number.isFinite)) {
+      throw new ParseError("Invalid numeric data");
+    }
+
+    // 🔹 Validar rango acelerómetro
+    if (x < -2048 || x > 2047 || y < -2048 || y > 2047) {
+      throw new ParseError("Out of expected range");
+    }
+
+    // 🔹 Validar botones (0 o 1)
+    if (![0, 1].includes(btnA) || ![0, 1].includes(btnB)) {
+      throw new ParseError("Invalid button data");
+    }
+
+    // 🔹 Checksum (usa valores numéricos)
+    const calc = Math.abs(x) + Math.abs(y) + btnA + btnB;
+
+    if (calc !== chk) {
+      throw new ParseError("Checksum mismatch");
+    }
+
+    // 🔹 Retorno final (transformación a boolean)
+    return {
+      x: x,
+      y: y,
+      btnA: btnA === 1,
+      btnB: btnB === 1
+    };
+
+  } catch (err) {
+    throw new ParseError("Malformed frame");
+  }
 }
 
 
