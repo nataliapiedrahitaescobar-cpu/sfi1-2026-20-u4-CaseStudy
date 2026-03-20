@@ -88,14 +88,14 @@ class PainterTask extends FSMTask {
         this.rxData.btnA = data.btnA;
         this.rxData.btnB = data.btnB;
 
-        if (this.rxData.btnA && !this.prevA) {
+        if (this.rxData.btnA && !this.rxData.prevA) {
             this.lineSize = random(50, 160);
             this.clickPosX = this.rxData.x;
             this.clickPosY = this.rxData.y;
             console.log("A pressed");
         }
 
-        if (!this.rxData.btnB && this.prevB) {
+        if (!this.rxData.btnB && this.rxData.prevB) {
             this.c = color(random(255), random(255), random(255), random(80, 100));
             console.log("B released");
         }
@@ -162,7 +162,7 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
    
    if (!mb || !mb.ready) return;//Verifica si llegaron los datos.
 
-   if(true){
+   
        push();//Guarda la configuración actual del dibujo.
        translate(width / 2, height / 2);
        
@@ -191,7 +191,7 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
      endShape();
 
      pop();
-   } 
+   
 }
 
 function windowResized() {
