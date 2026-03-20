@@ -15,12 +15,12 @@
 //        {cmd:"setLed", x:2, y:3, value:9}
 
 
-const { WebSocketServer } = require("ws");
-const { SerialPort } = require("serialport");
-const SimAdapter = require("./adapters/SimAdapter");
-const MicrobitAsciiAdapter = require("./adapters/MicrobitASCIIAdapter");
+const { WebSocketServer } = require("ws"); //Comunicación con el navegador.
+const { SerialPort } = require("serialport"); //Conexión con el microbit a través del puerto serial.
+const SimAdapter = require("./adapters/SimAdapter"); //Simulador.
+const MicrobitAsciiAdapter = require("./adapters/MicrobitASCIIAdapter"); //El hardware real.
 // const MicrobitBinaryAdapter = require("./adapters/MicrobitBinaryAdapter");
-
+const Microbit2ASCIIAdapter = require("./adapters/Microbit2ASCIIAdapter"); //El hardware con protocolo binario.
 const log = {
   info: (...args) => console.log(`[${new Date().toISOString()}] [INFO]`, ...args),
   warn: (...args) => console.warn(`[${new Date().toISOString()}] [WARN]`, ...args),
@@ -61,6 +61,7 @@ function status(wss, state, detail = "") {
   broadcast(wss, { type: "status", state, detail, t: nowMs() });
 }
 
+//Configuración del sketch de p5.js para recibir los datos del microbit a través del bridgeServer y dibujar en el canvas según esos datos.
 const DEVICE = (getArg("device", "sim") || "sim").toLowerCase();
 const WS_PORT = parseInt(getArg("wsPort", "8081"), 10);
 const SERIAL_PATH = getArg("serialPort", null);
@@ -68,7 +69,8 @@ const BAUD = parseInt(getArg("baud", "115200"), 10);
 const SIM_HZ = parseInt(getArg("hz", "30"), 10);
 const VERBOSE = hasFlag("verbose");
 
-async function findMicrobitPort() {
+//Buscar microbit automáticamente, si no se encuentra, usar el simulador.
+async function findMicrobitPort() { //Detecta el microbit automáticamente buscando en los puertos seriales un dispositivo con el vendorId del microbit.
   const ports = await SerialPort.list();
   const microbit = ports.find(p =>
     p.vendorId && parseInt(p.vendorId, 16) === 0x0D28
@@ -76,7 +78,7 @@ async function findMicrobitPort() {
   return microbit?.path ?? null;
 }
 
-async function createAdapter() {
+async function createAdapter() { //Crea el adapter y decide si se conecta al microbit real o al simulador.
   if (DEVICE === "microbit") {
     const path = SERIAL_PATH ?? await findMicrobitPort();
     if (!path) {
@@ -84,7 +86,8 @@ async function createAdapter() {
       process.exit(1);
     }
     log.info(`micro:bit found at ${path}`);
-    return new MicrobitAsciiAdapter({ path, baud: BAUD, verbose: VERBOSE });
+    return new Microbit2ASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE});
+    return new Microbit2AsciiAdapter({ path, baud: BAUD, verbose: VERBOSE });
   }
 
   // if (DEVICE === "microbit-bin") {
@@ -100,7 +103,7 @@ async function createAdapter() {
 }
 
 async function main() {
-  const wss = new WebSocketServer({ port: WS_PORT });
+  const wss = new WebSocketServer({ port: WS_PORT }); //Permite que el navegador (sketch.js) se conecte
   log.info(`WS listening on ws://127.0.0.1:${WS_PORT} device=${DEVICE}`);
 
   const adapter = await createAdapter();
@@ -120,7 +123,7 @@ async function main() {
     status(wss, "error", detail);
   };
 
-  adapter.onData = (d) => {
+  adapter.onData = (d) => { //Son los eventos del adapter, es donde se reciben los datos del parser, los coniverte a JSON y los envía al navegador.
     broadcast(wss, {
       type: "microbit",
       x: d.x,
@@ -133,7 +136,7 @@ async function main() {
 
   status(wss, "ready", `bridge up (${DEVICE})`);
 
-  wss.on("connection", (ws, req) => {
+  wss.on("connection", (ws, req) => { //Conexión con el cliente. Aquí se conecta el navegador y recibe los estados.
     log.info(`[NETWORK] Remote Client connected from ${req.socket.remoteAddress}. Total clients: ${wss.clients.size}`);
 
     const state = adapter.connected ? "connected" : "ready";
