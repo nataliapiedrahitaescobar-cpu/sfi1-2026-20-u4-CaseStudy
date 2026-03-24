@@ -87,7 +87,9 @@ async function createAdapter() { //Crea el adapter y decide si se conecta al mic
       process.exit(1);
     }
     log.info(`micro:bit (v1) found at ${path}`);
-    return new MicrobitASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE});
+    return new MicrobitASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE}); //Path es la dirección del puerto donde está conectado el microbit.
+    //baud es la velocidad de comunicación serial
+    //VERBOSE muestra un mensaje extra en consola con los datos crudos recibidos del microbit.
   }
 
   //Microbit v2 
@@ -96,7 +98,7 @@ async function createAdapter() { //Crea el adapter y decide si se conecta al mic
 
     if(!path) {
       log.error("micro:bit not found. Use --serialPort to specify manually");
-      process.exit(1);
+      process.exit(1); //Se cierra el programa porque no se encontró el microbir
     }
     log.info(`micro:bit (v2) found at ${path})`);
     return new Microbit2ASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE});
