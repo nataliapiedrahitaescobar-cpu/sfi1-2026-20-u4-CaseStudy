@@ -79,16 +79,29 @@ async function findMicrobitPort() { //Detecta el microbit automáticamente busca
 }
 
 async function createAdapter() { //Crea el adapter y decide si se conecta al microbit real o al simulador.
+  //Microbit v1
   if (DEVICE === "microbit") {
     const path = SERIAL_PATH ?? await findMicrobitPort();
     if (!path) {
       log.error("micro:bit not found. Use --serialPort to specify manually.");
       process.exit(1);
     }
-    log.info(`micro:bit found at ${path}`);
-    return new Microbit2ASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE});
-    return new Microbit2AsciiAdapter({ path, baud: BAUD, verbose: VERBOSE });
+    log.info(`micro:bit (v1) found at ${path}`);
+    return new MicrobitASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE});
   }
+
+  //Microbit v2 
+  if (DEVICE === "microbit-v2") {
+    const path = SERIAL_PATH ?? await findMicrobitPort();
+
+    if(!path) {
+      log.error("micro:bit not found. Use --serialPort to specify manually");
+      process.exit(1);
+    }
+    log.info(`micro:bit (v2) found at ${path})`);
+    return new Microbit2ASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE});
+  }
+
 
   // if (DEVICE === "microbit-bin") {
   //   const path = SERIAL_PATH ?? await findMicrobitPort();
@@ -98,7 +111,7 @@ async function createAdapter() { //Crea el adapter y decide si se conecta al mic
   //   }
   //   return new MicrobitBinaryAdapter({ path, baud: BAUD });
   // }
-
+  log.info("Using Simulator");
   return new SimAdapter({ hz: SIM_HZ });
 }
 
@@ -107,7 +120,8 @@ async function main() {
   log.info(`WS listening on ws://127.0.0.1:${WS_PORT} device=${DEVICE}`);
 
   const adapter = await createAdapter();
-
+   
+  //Eventos del adapter
   adapter.onConnected = (detail) => {
     log.info(`[ADAPTER] Device Connected: ${detail}`);
     status(wss, "connected", detail);
@@ -136,6 +150,7 @@ async function main() {
 
   status(wss, "ready", `bridge up (${DEVICE})`);
 
+  //Conexión con el cliente. 
   wss.on("connection", (ws, req) => { //Conexión con el cliente. Aquí se conecta el navegador y recibe los estados.
     log.info(`[NETWORK] Remote Client connected from ${req.socket.remoteAddress}. Total clients: ${wss.clients.size}`);
 
@@ -155,10 +170,15 @@ async function main() {
         log.info(`[NETWORK] Client requested adapter connect`);
 
         if (adapter.connected) {
-          log.info(`[HW-POLICY] Adapter already open. Sending current status to incoming client.`);
-          ws.send(JSON.stringify({ type: "status", state: "connected", detail: adapter.getConnectionDetail(), t: nowMs() }));
-          return;
-        }
+         ws.send(JSON.stringify({
+          type: "status",
+          state: "connected",
+          detail: adapter.getConnectionDetail(),
+          t: nowMs()
+        }));
+        return;
+      }
+
         
         try {
           await adapter.connect();
@@ -167,61 +187,59 @@ async function main() {
           log.error(`[ADAPTER] ` + detail);
           status(wss, "error", detail);
         }
-        return;
       }
+        
 
       if (msg.cmd === "disconnect") {
         log.info(`[NETWORK] Client requested adapter disconnect`);
-        if (wss.clients.size > 1) {
-          log.info(`[HW-POLICY] Adapater kept open. Shared with ${wss.clients.size - 1} other active client(s).`);
-          ws.send(JSON.stringify({ type: "status", state: "disconnected", detail: "logical disconnect only", t: nowMs() }));
-          return;
-        }
-        
-        try {
+     
+        try{
           await adapter.disconnect();
         } catch (e) {
           const detail = `disconnect failed: ${e.message || e}`;
-          log.error(`[ADAPTER] ` + detail);
-          status(wss, "error", detail);
+          log.error(detail);
+          status (wss, "error", detail);
         }
-        return;
       }
 
       if (msg.cmd === "setSimHz" && adapter instanceof SimAdapter) {
-        log.info(`Setting Sim Hz to ${msg.hz}`);
+        log.info(`Setting Sim Hz to ${msg.hz}`); 
         await adapter.handleCommand(msg);
         status(wss, "connected", `sim hz=${adapter.hz}`);
-        return;
       }
-
+      
       if (msg.cmd === "setLed") {
         try {
           await adapter.handleCommand?.(msg);
-        } catch (e) {
-          const detail = `command failed: ${e.message || e}`;
-          log.error(`[ADAPTER] ` + detail);
-          status(wss, "error", detail);
+          } catch (e) {
+            const detail = `command failed: ${e.message || e}`;
+            log.error(`[ADAPTER] ` + detail);
+            status(wss, "error", detail);
+          }
         }
-        return;
-      }
+      });
+             
+      ws.on("close", () => {
+        log.info(`[NETWORK] Remote Client disconnected. Total clients left: ${wss.clients.size}`);
+        if (wss.clients.size === 0) {
+          log.info("[HW-POLICY] No more remote clients. Auto-disconnecting adapter device to free resources...");
+          adapter.disconnect();
+        }
+      });
     });
-
-    ws.on("close", () => {
-      log.info(`[NETWORK] Remote Client disconnected. Total clients left: ${wss.clients.size}`);
-      if (wss.clients.size === 0) {
-        log.info("[HW-POLICY] No more remote clients. Auto-disconnecting adapter device to free resources...");
-        adapter.disconnect();
-      }
-    });
-  });
-
-  if (DEVICE === "sim") {
-    await adapter.connect();
+    
+    //Auto-connect solo para el simulador.
+    if (DEVICE === "sim") {
+      await adapter.connect();
+    }
   }
-}
+  
+  main().catch((e) => {
+    log.error("Fatal:", e);
+    process.exit(1);
+  });
+        
+     
 
-main().catch((e) => {
-  log.error("Fatal:", e);
-  process.exit(1);
-});
+
+
