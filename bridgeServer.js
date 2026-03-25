@@ -87,7 +87,7 @@ async function createAdapter() { //Crea el adapter y decide si se conecta al mic
       process.exit(1);
     }
     log.info(`micro:bit (v1) found at ${path}`);
-    return new MicrobitASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE}); //Path es la dirección del puerto donde está conectado el microbit.
+    return new Microbit2ASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE}); //Path es la dirección del puerto donde está conectado el microbit.
     //baud es la velocidad de comunicación serial
     //VERBOSE muestra un mensaje extra en consola con los datos crudos recibidos del microbit.
   }

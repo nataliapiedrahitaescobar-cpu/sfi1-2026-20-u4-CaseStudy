@@ -159,39 +159,31 @@ function draw() {//Se ejecuta 60 veces por segundo.
 function drawRunning() { //Ejecuta cada frame mientras la máquina de estados esté en estado_corriendo.
    let mb = painter.rxData;//Busca que función dibuja el estado actual, se obtiene  los datos que llegaron del microbit.
    
-   
-   if (!mb || !mb.ready) return;//Verifica si llegaron los datos.
+   if(!mb || !mb.ready) return; //Verifica si llegaron los datos del microbit, si no llegaron, no hace nada.
 
-   
-       push();//Guarda la configuración actual del dibujo.
-       translate(width / 2, height / 2);
-       
-       //Resolución del polígono según inclinación en y
-       let circleResolution = int(map(mb.y, 0, height, 2, 10));
-       
-       //Radio según resolución en x
-       let radius = map(mb.x, 0, width, 10, width / 2);
-       
-       let angle = TAU / circleResolution;
-       
-       //Botón b activa relleno
-       if(mb.btnB){
-           fill(34,45,122,50);
-        }else {
-            noFill();
-        }
-        
-        beginShape();
-        for (let i = 0; i <= circleResolution; i++){
-         let x = cos(angle * i) * radius;
-         let y = sin(angle * i) * radius;
-         vertex(x,y);
-        }
+   if (mb.btnB){
+    fill(34,45,122,50);
+   }else{
+    noFill();
+   }
 
-     endShape();
+   if(mb.btnA) {
+    push();
+    translate(width / 2, height / 2);
+    
+    let circleResolution = int(map(mb.y, 0, height, 2, 10));
+    let radius = map(mb.x, 0, width, 10, width / 2);
+    let angle = TAU / circleResolution;
 
-     pop();
-   
+    beginShape();
+    for(let i = 0; i <= circleResolution; i++){
+        let x = cos(angle * i) * radius;
+        let y = sin(angle * i) * radius;
+        vertex(x,y);
+    }
+    endShape();
+   }
+   pop();
 }
 
 function windowResized() {
