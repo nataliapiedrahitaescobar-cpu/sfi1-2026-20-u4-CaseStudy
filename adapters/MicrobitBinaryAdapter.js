@@ -5,13 +5,13 @@ class ParseError extends Error { }
 
 
 
-class MicrobitAsciiAdapter extends BaseAdapter {
+class MicrobitBinaryAdapter extends BaseAdapter {
   constructor({ path, baud = 115200, verbose = false } = {}) {
     super();
     this.path = path;
     this.baud = baud;
     this.port = null;
-    this.buf = "";
+    this.buf = Buffer.alloc(0);
     this.verbose = verbose;
   }
 
@@ -76,7 +76,7 @@ class MicrobitAsciiAdapter extends BaseAdapter {
 
     //Calcular el checksum
     let sum = 0;
-    for(let i = 0; i <= 6; i++) {
+    for(let i = 1; i <= 6; i++) {
         sum += packet[i];
     }
     const checksum = sum % 256;
@@ -116,7 +116,7 @@ class MicrobitAsciiAdapter extends BaseAdapter {
     if (!this.connected) return;
     this.connected = false;
     this.port = null;
-    this.buf = "";
+    this.buf = Buffer.alloc(0);
     this.onDisconnected?.("serial closed (event)");
   }
 
@@ -137,4 +137,4 @@ class MicrobitAsciiAdapter extends BaseAdapter {
   }
 }
 
-module.exports = MicrobitAsciiAdapter;
+module.exports = MicrobitBinaryAdapter;
