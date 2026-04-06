@@ -5,6 +5,7 @@
 //     node bridgeServer.js --device sim --wsPort 8081 --hz 30
 //     node bridgeServer.js --device microbit --wsPort 8081 --serialPort COM5 --baud 115200
 //     node bridgeServer.js --device microbit-v2 
+//     node bridgeServer.js --device microbitBinary --serialPort COM5 --baud 115200
 //   WS contract:
 //    * bridge To client:
 //        {type:"status", state:"ready|connected|disconnected|error", detail:"..."}
@@ -20,7 +21,8 @@ const { SerialPort } = require("serialport"); //Conexión con el microbit a trav
 const SimAdapter = require("./adapters/SimAdapter"); //Simulador.
 const MicrobitAsciiAdapter = require("./adapters/MicrobitASCIIAdapter"); //El hardware real.
 // const MicrobitBinaryAdapter = require("./adapters/MicrobitBinaryAdapter");
-const Microbit2ASCIIAdapter = require("./adapters/Microbit2ASCIIAdapter"); //El hardware con protocolo binario.
+const Microbit2ASCIIAdapter = require("./adapters/Microbit2ASCIIAdapter"); 
+const MicrobitBinaryAdapter = require ("./adapters/Microbit2ASCIIAdapter"); //El hardware con protocolo binario.
 const log = {
   info: (...args) => console.log(`[${new Date().toISOString()}] [INFO]`, ...args),
   warn: (...args) => console.warn(`[${new Date().toISOString()}] [WARN]`, ...args),
@@ -104,6 +106,16 @@ async function createAdapter() { //Crea el adapter y decide si se conecta al mic
     return new Microbit2ASCIIAdapter({ path, baud: BAUD, verbose: VERBOSE});
   }
 
+//Microbit con protocolo binario
+if (DEVICE === "microbitbinary") {
+  const path = SERIAL_PATH ?? await findMicrobitPort(); //Busca el microbit automáticamente, si no se encuentra, usa el simulador.
+  if (!path) {
+    log.error("Micro:bit not found. Use --serialPort to specify manually.");
+    process.exit(1); //Se cierra el programa porque no se encontró el microbit.
+  }
+ log.info(`micro:bit (binary) found at ${path}`);
+ return new MicrobitBinaryAdapter({ path, baud: BAUD, verbose: VERBOSE}); //Path es la dirección del puerto donde está conectado el microbit. 
+}
 
   // if (DEVICE === "microbit-bin") {
   //   const path = SERIAL_PATH ?? await findMicrobitPort();
