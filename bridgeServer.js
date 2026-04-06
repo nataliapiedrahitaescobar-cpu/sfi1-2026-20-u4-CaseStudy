@@ -5,7 +5,9 @@
 //     node bridgeServer.js --device sim --wsPort 8081 --hz 30
 //     node bridgeServer.js --device microbit --wsPort 8081 --serialPort COM5 --baud 115200
 //     node bridgeServer.js --device microbit-v2 
-//     node bridgeServer.js --device microbitBinary --serialPort COM5 --wsPort 8081--baud 115200
+//     node bridgeServer.js --device microbitBinary --serialPort COM5 --baud 115200
+//  Probar enconsola: node bridgeServer.js --device microbitBinary --wsPort 8081
+//  Activar el Verbose: node bridgeServer.js --device microbitBinary --verbose
 //   WS contract:
 //    * bridge To client:
 //        {type:"status", state:"ready|connected|disconnected|error", detail:"..."}
