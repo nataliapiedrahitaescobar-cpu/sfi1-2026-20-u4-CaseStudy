@@ -100,8 +100,8 @@ class PainterTask extends FSMTask {
             console.log("B released");
         }
 
-        this.prevA = this.rxData.btnA;
-        this.prevB = this.rxData.btnB;
+        this.rxData.prevA = this.rxData.btnA;
+        this.rxData.prevB = this.rxData.btnB;
     }
 }
 
