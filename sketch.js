@@ -162,7 +162,7 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
    if(!mb || !mb.ready) return; //Verifica si llegaron los datos del microbit, si no llegaron, no hace nada.
 
    if (mb.btnB){
-    fill(34,45,122,50);
+    fill(painter.c);
    }else{
     noFill();
    }
@@ -182,8 +182,8 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
         vertex(x,y);
     }
     endShape();
+    pop();
    }
-   pop();
 }
 
 function windowResized() {
