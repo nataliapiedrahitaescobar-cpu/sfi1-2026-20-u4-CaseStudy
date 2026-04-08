@@ -83,10 +83,11 @@ class PainterTask extends FSMTask {
     //Convierte los valores del acelerómetro a coordenadas de la pantalla y maneja la lógica de los botones.
     updateLogic(data) {
         this.rxData.ready = true;
+        console.log("A:", data.btnA, "B:", data.btnB)
         this.rxData.x = map(data.x,-2048,2047,0,width);
         this.rxData.y = map(data.y,-2048,2047,0,height);
-        this.rxData.btnA = data.btnA;
-        this.rxData.btnB = data.btnB;
+        this.rxData.btnA = data.btnA == 1 || data.btnA === true;
+        this.rxData.btnB = data.btnB == 1 || data.btnB === true;
 
         if (this.rxData.btnA && !this.rxData.prevA) {
             this.lineSize = random(50, 160);
