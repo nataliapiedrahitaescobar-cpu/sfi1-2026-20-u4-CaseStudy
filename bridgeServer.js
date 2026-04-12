@@ -21,7 +21,7 @@
 const { WebSocketServer } = require("ws"); //Comunicación con el navegador.
 const { SerialPort } = require("serialport"); //Conexión con el microbit a través del puerto serial.
 const SimAdapter = require("./adapters/SimAdapter"); //Simulador.
-const MicrobitAsciiAdapter = require("./adapters/MicrobitASCIIAdapter"); //El hardware real.
+const MicrobitASCIIAdapter = require("./adapters/MicrobitASCIIAdapter"); //El hardware real.
 // const MicrobitBinaryAdapter = require("./adapters/MicrobitBinaryAdapter");
 const Microbit2ASCIIAdapter = require("./adapters/Microbit2ASCIIAdapter"); 
 const MicrobitBinaryAdapter = require ("./adapters/MicrobitBinaryAdapter.js"); //El hardware con protocolo binario.
