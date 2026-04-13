@@ -5,7 +5,7 @@
 //     node bridgeServer.js --device sim --wsPort 8081 --hz 30
 //     node bridgeServer.js --device microbit --wsPort 8081 --serialPort COM5 --baud 115200
 //     node bridgeServer.js --device microbit-v2 
-//     node bridgeServer.js --device microbitBinary --serialPort COM8 --wsPort 8081
+//     node bridgeServer.js --device microbitBinary --serialPort COM --wsPort 8081
 //  Activar el Verbose: node bridgeServer.js --device microbitBinary --verbose
 //   WS contract:
 //    * bridge To client:
@@ -109,7 +109,7 @@ async function createAdapter() { //Crea el adapter y decide si se conecta al mic
 
 //Microbit con protocolo binario
 if (DEVICE === "microbitbinary") {
-  const path = SERIAL_PATH ?? await findMicrobitPort(); //Busca el microbit automáticamente, si no se encuentra, usa el simulador.
+  const path = SERIAL_PATH ?? "COM8"; //Busca el microbit automáticamente, si no se encuentra, usa el simulador.
   if (!path) {
     log.error("Micro:bit not found. Use --serialPort to specify manually.");
     process.exit(1); //Se cierra el programa porque no se encontró el microbit.
