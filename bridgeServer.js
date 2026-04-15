@@ -6,6 +6,7 @@
 //     node bridgeServer.js --device microbit --wsPort 8081 --serialPort COM5 --baud 115200
 //     node bridgeServer.js --device microbit-v2 
 //     node bridgeServer.js --device microbitBinary --serialPort COM --wsPort 8081
+//     node bridgeServer.js --device strudel --wsPort 8082
 //  Activar el Verbose: node bridgeServer.js --device microbitBinary --verbose
 //   WS contract:
 //    * bridge To client:
@@ -24,6 +25,7 @@ const MicrobitASCIIAdapter = require("./adapters/MicrobitASCIIAdapter"); //El ha
 // const MicrobitBinaryAdapter = require("./adapters/MicrobitBinaryAdapter");
 const Microbit2ASCIIAdapter = require("./adapters/Microbit2ASCIIAdapter"); 
 const MicrobitBinaryAdapter = require ("./adapters/MicrobitBinaryAdapter.js"); //El hardware con protocolo binario.
+const StrudelAdapter = require ("./adapters/StrudelAdapter"); //El adapter para conectar con Strudel.
 const log = {
   info: (...args) => console.log(`[${new Date().toISOString()}] [INFO]`, ...args),
   warn: (...args) => console.warn(`[${new Date().toISOString()}] [WARN]`, ...args),
@@ -118,6 +120,15 @@ if (DEVICE === "microbitbinary") {
  return new MicrobitBinaryAdapter({ path, baud: BAUD, verbose: VERBOSE}); //Path es la dirección del puerto donde está conectado el microbit. 
 }
 
+//Strudel
+if (DEVICE === "strudel") {
+  return new StrudelAdapter({
+    url: "ws://localhost:8080", //Dirección del servidor de Strudel
+    verbose: VERBOSE 
+  });
+}
+  
+
   // if (DEVICE === "microbit-bin") {
   //   const path = SERIAL_PATH ?? await findMicrobitPort();
   //   if (!path) {
@@ -153,14 +164,23 @@ async function main() {
   };
 
   adapter.onData = (d) => { //Son los eventos del adapter, es donde se reciben los datos del parser, los coniverte a JSON y los envía al navegador.
+     
+    //Caso 1: Datos del Strudel
+    if(d.type === "strudel") {
+      broadcast(wss, d); //Envía los datos del Strudel al navegador.
+      return;
+    }
+    
+    //Caso 2: Datos del microbit
     broadcast(wss, {
       type: "microbit",
       x: d.x,
       y: d.y,
-      btnA: !!d.btnA,
+      btnA: !!d.btnA, //Se convierte el botón A en valor booleano.
       btnB: !!d.btnB,
-      t: nowMs(),
-    });
+      t: nowMs() 
+
+    })
   };
 
   status(wss, "ready", `bridge up (${DEVICE})`);
