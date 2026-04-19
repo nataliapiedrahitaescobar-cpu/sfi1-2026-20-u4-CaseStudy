@@ -29,6 +29,10 @@ class PainterTask extends FSMTask {
             prevB: false,
             ready: false
         };
+
+        //Strudel
+        this.eventQueue = [];
+        this.activeAnimations = [];
         //Es donde se guardan los datos recibidos del microbit, se actualizan en la función updateLogic.
         this.transitionTo(this.estado_esperando);
     }
@@ -69,6 +73,10 @@ class PainterTask extends FSMTask {
             this.updateLogic(ev.payload); //Se procesan los datos del microbit.
         }
 
+        else if (ev.type === EVENTS.STRUDEL) {
+          this.updateStrudel(ev); //Se procesan los datos del strudel, aunque en este caso no se hace nada con ellos.
+        }
+
         else if (ev.type === EVENTS.KEY_PRESSED) {
             this.handleKeys(ev.keyCode, ev.key);
         }
@@ -82,6 +90,7 @@ class PainterTask extends FSMTask {
         }
     };
     //Convierte los valores del acelerómetro a coordenadas de la pantalla y maneja la lógica de los botones.
+    //Lógico del microbit.
     updateLogic(data) {
         this.rxData.ready = true;
         console.log("A:", data.btnA, "B:", data.btnB)
@@ -105,7 +114,38 @@ class PainterTask extends FSMTask {
         this.rxData.prevA = this.rxData.btnA;
         this.rxData.prevB = this.rxData.btnB;
     }
+
+    //Lógica del Strudel.
+    updateStrudel(ev) {
+        this.eventQueue.push({
+            timestamp: ev.timestamp,
+            s: ev.payload.s,
+            delta: ev.payload.delta || 0.25
+        });
+
+        this.eventQueue.sort((a,b)  => a.timestamp - b.timestamp);
+    }
+
+    processStrudel() {
+        let now = Date.now();
+
+        while(
+            this.eventQueue.length > 0 &&
+            now >= this.eventQueue[0].timestamp
+        ) {
+            let ev = this.eventQueue.shift();
+
+            this.activeAnimations.push({
+                startTime: ev.timestamp,
+                duration: ev.delta * 1000,
+                type: ev.s,
+                x: random(width),
+                y: random(height)
+            });
+        }
+    }
 }
+
 
 let painter;
 let bridge;
@@ -132,7 +172,10 @@ function setup() { //Crea el canvas, usa todo el tamaño de la ventana y pinta e
         console.log("BRIDGE STATUS:", s.state, s.detail ?? "");
     });
 
-    bridge.onData((data) => {
+    //Se diferencian microbit data del strudel data.
+  bridge.onData((data) => {
+
+        // MICROBIT
         if (data.type === "microbit" || data.x !== undefined) {
             painter.postEvent({
                 type: EVENTS.DATA,
@@ -140,21 +183,22 @@ function setup() { //Crea el canvas, usa todo el tamaño de la ventana y pinta e
                     x: data.x,
                     y: data.y,
                     btnA: data.btnA,
-                    btnB: data.btnB,
-                  
+                    btnB: data.btnB
                 }
             });
         }
 
-        //Strudel data, se muestra en la consola, pero no se utiliza para nada más.
+        // STRUDEL
         else if (data.type === "strudel") {
             painter.postEvent({
-
+                type: EVENTS.STRUDEL,
+                timestamp: data.timestamp,
+                payload: data.payload
             });
         }
+    });
 
-    }
-
+    // BOTÓN (NO SE TOCA)
     connectBtn = createButton("Connect");
     connectBtn.position(10, 10);
     connectBtn.mousePressed(() => {
@@ -162,11 +206,14 @@ function setup() { //Crea el canvas, usa todo el tamaño de la ventana y pinta e
         else bridge.open();
     });
 
-    renderer.set(painter.estado_corriendo, drawRunning); //Si el estado está corriendo, ejecuta el drawRunning.
+    renderer.set(painter.estado_corriendo, drawRunning);
 }
 
 function draw() {//Se ejecuta 60 veces por segundo.
     painter.update(); //Actualiza la máquina de estados.
+    //Ejecutar eventos temporizados del strudel
+    painter.processStrudel();
+
     renderer.get(painter.state)?.();
 }
 
@@ -199,10 +246,55 @@ function drawRunning() { //Ejecuta cada frame mientras la máquina de estados es
     pop();
    }
 }
+//Strudel
+let now = Date.now();
 
+    for (let i = painter.activeAnimations.length - 1; i >= 0; i--) {
+        let anim = painter.activeAnimations[i];
+
+        let progress = (now - anim.startTime) / anim.duration;
+
+        if (progress <= 1) {
+            drawStrudel(anim, progress);
+        } else {
+            painter.activeAnimations.splice(i, 1);
+        }
+    }
+
+//Dibujar strudel
+function drawStrudel(anim, p) {
+
+    switch (anim.type) {
+
+        case "tr909bd":
+            fill(255, 0, 80);
+            circle(width / 2, height / 2, lerp(50, 400, p));
+            break;
+        
+        case "tr909sd":
+            fill(0, 200, 255);
+            rect(width / 2, height / 2, lerp(width, 0, p), 50);
+            break;
+        
+        case "tr909hh":
+        case "tr909oh":
+            fill(255, 255, 0);
+            rect(anim.x, anim.y, lerp(40, 0, p), lerp(40, 0, p));
+            break;
+
+        default:
+            fill(200);
+            circle(anim.x, anim.y, lerp(20, 100, p));
+            break;
+        }
+    }
+    
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
+
+
+
 
 
 
