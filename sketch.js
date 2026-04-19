@@ -5,6 +5,7 @@ const EVENTS = {
     CONNECT: "CONNECT",
     DISCONNECT: "DISCONNECT",
     DATA: "DATA",
+    STRUDEL: "STRUDEL",
     KEY_PRESSED: "KEY_PRESSED",
     KEY_RELEASED: "KEY_RELEASED",
 };
@@ -131,16 +132,28 @@ function setup() { //Crea el canvas, usa todo el tamaño de la ventana y pinta e
         console.log("BRIDGE STATUS:", s.state, s.detail ?? "");
     });
 
-    bridge.onData((data) => { //Se ejecuta cada vez que llegan datos al microbit.
-        painter.postEvent({
-            type: EVENTS.DATA, payload: {
-                x: data.x,
-                y: data.y,
-                btnA: data.btnA,
-                btnB: data.btnB
-            }
-        });
-    });
+    bridge.onData((data) => {
+        if (data.type === "microbit" || data.x !== undefined) {
+            painter.postEvent({
+                type: EVENTS.DATA,
+                payload: {
+                    x: data.x,
+                    y: data.y,
+                    btnA: data.btnA,
+                    btnB: data.btnB,
+                  
+                }
+            });
+        }
+
+        //Strudel data, se muestra en la consola, pero no se utiliza para nada más.
+        else if (data.type === "strudel") {
+            painter.postEvent({
+
+            });
+        }
+
+    }
 
     connectBtn = createButton("Connect");
     connectBtn.position(10, 10);
