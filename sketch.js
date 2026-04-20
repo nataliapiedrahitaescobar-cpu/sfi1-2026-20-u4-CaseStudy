@@ -26,24 +26,17 @@ function setup() {
     });
 
     //Aquí llegan todos los datos del microbit y el strudel.
-    bridge.onData((data)=> {
-         //Strudel
-         if (data.type === "strudel") {
-            painter.postEvent({
-                type: "Strudel",
-                timestamp: data.timestamp,
-                payload: data.payload
-            });
-         }
+ bridge.onData((data) => {
+  console.log("🔥 LLEGA:", data);
 
-         //Microbit
-         else if (data.type === "microbit") {
-            painter.postEvent({
-                type: "DATA",
-                payload: data
-            });
-         }
+  if (data.type === "strudel") {
+    painter.postEvent({
+      type: "STRUDEL",
+      timestamp: data.timestamp,
+      payload: data.payload
     });
+  }
+});
 
     //Botón 
     connectBtn = createButton("Connect");
