@@ -1,14 +1,5 @@
 // Maneja la conexión con el microbit, Recibe los datos del microbit y dibuja en pantalla con estos datos. Utiliza una máquina de estados para manejar la lógica de la aplicación.
 
-const EVENTS = {
-    //Definición de los eventos.
-    CONNECT: "CONNECT",
-    DISCONNECT: "DISCONNECT",
-    DATA: "DATA",
-    STRUDEL: "STRUDEL",
-    KEY_PRESSED: "KEY_PRESSED",
-    KEY_RELEASED: "KEY_RELEASED",
-};
 
 class PainterTask extends FSMTask {
     constructor() {
