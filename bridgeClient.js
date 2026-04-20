@@ -1,5 +1,5 @@
 class BridgeClient {
-  constructor(url = "ws://127.0.0.1:8081") { //Define en donde se conecta el bridge, por defecto es en el localHost en el puerto 8081.
+  constructor(url = "ws://127.0.0.1:8082") { //Define en donde se conecta el bridge, por defecto es en el localHost en el puerto 8081.
     this._url = url;
     //Muestra el estado de la conexión con el bridge, si está abierto o cerrado.
     this._ws = null;
