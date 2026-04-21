@@ -112,17 +112,33 @@ class PainterTask extends FSMTask {
   };
 
   //Guardar eventos de Strudel sin dibujar
-  updateLogic(ev) {
+updateLogic(ev) {
 
-    this.eventQueue.push({
-      timestamp: ev.timestamp,
-      s: ev.payload.s,
-      delta: ev.payload.delta || 0.25
-    });
+  let args = ev.payload.args;
 
-    //Ordenar por tiempos
-    this.eventQueue.sort((a,b) => a.timestamp - b.timestamp);
+  let sound = null;
+  let delta = 0.25;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "s") {
+      sound = args[i + 1];
+    }
+    if (args[i] === "delta") {
+      delta = args[i + 1];
+    }
   }
+
+  if (!sound) return; // si no hay sonido, no hacer nada
+
+  this.eventQueue.push({
+    timestamp: Date.now(),
+    s: sound,
+    delta: delta
+  });
+
+  //Ordenar por tiempo
+  this.eventQueue.sort((a, b) => a.timestamp - b.timestamp);
+}
 
   //Ejecutar eventos en su tiempo
   processEvents() {

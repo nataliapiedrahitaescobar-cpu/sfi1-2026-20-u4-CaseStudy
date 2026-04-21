@@ -27,9 +27,9 @@ function setup() {
 
     //Aquí llegan todos los datos del microbit y el strudel.
 bridge.onData((data) => {
-  console.log("🔥 LLEGA:", data);
+  console.log("LLEGA:", data);
 
-  // 👉 MICROBIT
+  //  MICROBIT
   if (data.type === "microbit") {
     painter.postEvent({
       type: EVENTS.DATA,
@@ -42,7 +42,7 @@ bridge.onData((data) => {
     });
   }
 
-  // 👉 STRUDEL
+  // STRUDEL
   else if (data.type === "strudel") {
     painter.postEvent({
       type: "STRUDEL",
