@@ -114,6 +114,8 @@ class PainterTask extends FSMTask {
   //Guardar eventos de Strudel sin dibujar
 updateLogic(ev) {
 
+if (!ev.payload || !ev.payload.args) return; // Si el evento no tiene la estructura esperada, ignorarlo.
+
   let args = ev.payload.args;
 
   let sound = null;
