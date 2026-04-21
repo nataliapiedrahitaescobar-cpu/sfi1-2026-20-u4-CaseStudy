@@ -72,8 +72,7 @@ function drawRunning() {
  //Activar eventos en el tiempo correcto
     painter.processEvents();
 
-    let mb = painter.rxData;
-    if (!mb || !mb.ready) return;
+   
 
     let now = Date.now();
 
