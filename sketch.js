@@ -1,62 +1,154 @@
+//Maneja la conexión con el microbit, Recibe los datos del microbit y dibuja en pantalla con esos datos. 
+//Utiliza una máquina de estados para manejar la lógica de la aplicación.
+
+const EVENTS = { //Definición de los eventos
+CONNECT: "CONNECT",
+DISCONNECT: "DISCONNECT",
+DATA: "DATA",
+KEY_PRESSED: "KEY_PRESSED",
+KEY_RELEASED: "KEY_RELEASED",
+};
+
+class PainterTask extends FSMTask {
+    constructor() {
+        super();
+        this.c = color(181, 157, 0); //Color inicial del dibujo. se actualiza al soltar el botón B del microbit, con un color aleatorio.
+        this.lineSize = 100;
+        this.angle = 0;
+        this.clickPosX = 0;
+        this.clickPosY = 0;
+
+
+        this.rxData  = {
+            x: 0,
+            y: 0,
+            btnA: false,
+            btnB: false,
+            prevA: false,
+            prevB: false,
+            ready: false,
+        };
+
+        this.transitionTo(this.estado_esperando); //Estado inicial de la máquina de estados.
+    }
+
+    //Estado esperando conexión
+    estado_esperando = (ev) => {
+        if (ev.type === "Entry") {
+            cursor();
+            console.log("Esperando conexión...");
+
+        }
+        else if (ev.type === EVENTS.CONNECT) {
+            this.transitionTo(this.estado_corriendo); //Transición al estado corriendo cuando se conecta el microbit.
+        }
+    };
+
+    //Estado corriendo, es el estado principal de la aplicación, donde se reciben los datos del microbit y se dibuja en pantalla.
+    estado_corriendo = (ev) => {
+        if (ev.type === "ENTRY") {
+           noCursor();
+           strokeWeight(0.75);
+           background(255);
+           console.log("Microbit conectado, listo para dibujar");
+
+           this.rxData = {
+            x: 0,
+            y: 0,
+            btnA: false,
+            btnB: false,
+            prevA: false,
+            prevB: false,
+            ready: false,
+           };
+        }
+
+        else if(ev.type === EVENTS.DISCONNECT) {
+            this.transitionTo(this.estado_esperando); //Trasición al estado esperando cuando se desconecta el microbit.
+        }
+        else if(ev.type === EVENTS.DATA) {
+            this.updateLogic(ev.payload); //Actualiza la lógica de dibujo con los datos recibidos del microbit.
+        }
+        else if(ev.type === EVENTS.KEY_PRESSED) {
+            this.handleKeys(ev.keyCode, ev.key); //Maneja los eventos de teclas presionadas, en este caso, el botón A y B del microbit.
+        }
+        else if(ev.type === EVENTS.KEY_RELEASED) {
+            this.handleKeyRelease(ev.keyCode, ev.key); //Maneja los eventos de teclas soltadas.
+        }
+        else if(ev.type === "EXIT") {
+            cursor();
+        }
+    };
+
+    //Lógica del microbit
+    updateLogic(data) {
+        this.rxData.ready = true;
+
+        console.log("A:", data.btnA, "B:", data.btnB);
+
+        this.rxData.x = map(data.x, -2048, 2047, 0, width);
+        this.rxData.y = map(data.y, -2048, 2047, 0, height);
+
+        if(this.rxData.btnA && !this.rxData.prevA) {
+            this.lineSize = random(50, 160);
+            this.clickPosX = this.rxData.x;
+            this.clickPosY = this.rxData.y;
+            console.log("Botón A presionado"); 
+        }
+
+        if(!this.rxData.btnB && this.rxData.prevB) {
+            this.c = color(random(255), random(255), random(80, 100));
+            console.log("Botón B soltado, color cambiado");
+        }
+
+        this.rxData.prevA = this.rxData.btnA;
+        this.rxData.prevB = this.rxData.btnB;
+    }
+}
+
+//SKETCH
 let painter;
 let bridge;
-let connectBtn;
-let renderer = new Map();
+let connectBtn; 
+const renderer = new Renderer();
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
-    background(0);
+    background(255);
 
-    painter = new PainterTask(); //Crea una nueva tarea de pintura, que es la máquina de estados que controla la pintura en el canvas.
-    bridge = new BridgeClient(); //Crea una nueva instancia del cliente del puente, que se conecta al servidor del puente para recibir los datos del microbit y el strudel.
+    painter = new PainterTask();
+    bridge = new BridgeClient();
 
-    //Conexión con el bridge.
     bridge.onConnect(() => {
-        connectBtn.html("Disconnect");
-        painter.postEvent({ type: "CONNECT"});
+        connectBtn.html("Desconectar");
+        painter.postEvent({ type: EVENTS.CONNECT});
     });
 
-    bridge.onDisconnect(() => {
-        connectBtn.html("Connect");
-        painter.postEvent({ type: "DISCONNECT"});
+    bridge.onDisconnect(() =>  {
+        connectBtn.html("Conectar");
+        painter.postEvent({ type:  EVENTS,DISCONNECT});
     });
 
     bridge.onStatus((s) => {
-        console.log("BRIDEGE STATUS:", s.state, s.detail ?? "");
+        console.log("BRIDGE STATUS:", s.state, s.detail ?? "");
     });
 
-    //Aquí llegan todos los datos del microbit y el strudel.
-bridge.onData((data) => {
-  console.log("LLEGA:", data);
-
-  //  MICROBIT
-  if (data.type === "microbit") {
-    painter.postEvent({
-      type: EVENTS.DATA,
-      payload: {
-        x: data.x,
-        y: data.y,
-        btnA: data.btnA,
-        btnB: data.btnB
-      }
+    bridge.onData((data) => {
+        painter.postEvent({
+            type: EVENTS.DATA,
+            payload: {
+                x: data.x,
+                y: data.y,
+                btnA: data.btnA,
+                btnB: data.btnB,
+            }
+        });
     });
-  }
 
-  // STRUDEL
-  else if (data.type === "strudel") {
-    painter.postEvent({
-      type: "STRUDEL",
-      timestamp: data.timestamp,
-      payload: data.payload
-    });
-  }
-});
-
-    //Botón 
-    connectBtn = createButton("Connect");
-    connectBtn.position(10,10);
-    connectBtn.mousePressed(() => {
-        if (bridge.isOpen) bridge.close();
+    connectBtn = createButton("Conectar");
+    connectBtn.position(10, 10);
+    connectBtn.mousePressed(() =>  {
+        if(bridge.isOpen) bridge.close();
         else bridge.open();
     });
 
@@ -65,63 +157,44 @@ bridge.onData((data) => {
 
 function draw() {
     painter.update();
-    renderer.get(painter.state)?.(); //Llama a la función de renderizado correspondiente al estado actual de la máquina de estados.
+    renderer.get(painter.state)?.();
 }
 
 function drawRunning() {
- //Activar eventos en el tiempo correcto
-    painter.processEvents();
+let.mb = painter.rxData;
 
-   
+if(!mb || !mb.ready) return;
 
-    let now = Date.now();
+if(mb.btnB) {
+    fill(painter.c);
+} else {
+    noFill();
+}
 
-    //Dibujo de Strudel
-    for (let i = painter.activeAnimations.length -1;  i >= 0; i--) {
- 
-        let anim = painter.activeAnimations[i];
-        let progress = (now - anim.startTime) / anim.duration; //Progeso de la animación.
-        
-    //Eliminar animaciones que han terminado
-        if (progress > 1) {
-            
-            painter.activeAnimations.splice(i, 1); //Eliminar la animación de la lista de animaciones activas.
-            continue; // Saltar a la siguiente animación.
-        }
-            switch (anim.type) {
-                case "tr909bd": //Bombo
-                fill (255, 0, 80);
-                noStroke();
-                circle(width / 2, height / 2, lerp(50, 300, progress)); //Dibuja un círculo que crece con el tiempo.
-                break;
-                
-                case "tr909sd": //Caja
-                fill (0, 200, 255);
-                rectMode(CENTER); 
-                rect(width / 2, height / 2, lerp(width, 0, progress), 50); //Dibuja un rectángulo que se encoge con el tiempo.
-                break; 
-                
-                case "tr909hh":
-                    case "tr909oh": //Hi-hat abierto y cerrado
-                    fill (255, 255, 0);
-                    rect(anim.x, anim.y, lerp(40, 0, progress), lerp(40, 0, progress)); //Dibuja un rectángulo que se encoge con el tiempo en la posición del hi-hat.
-                    break;
-                    
-                default:
-                    fill(255);
-                    noFill();
-                    rect(anim.x, anim.y, lerp(100, 0, progress), lerp(100, 0, progress)); //Dibuja un rectángulo genérico para otros tipos de animaciones.
-                    break;
-                }
-            }
-        }
-        
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
-        } 
-       
+if(mb.btnA) {
+    push();
+    translate(width / 2, height / 2);
 
-            
+    let circleResolution = int(map(mb.y, 0, height, 2, 10));
+    let radius = map(mb.x, 0, width, 10, width / 2);
+    let angle = TAU / circleResolution;
+
+    beginShape();
+    for(let i = 0; i <= circleResolution; i++) {
+        let x = cos(angle * i) * radius;
+        let y = sin(angle * i) * radius;
+        vertex(x, y);
+    }
+    endShape();
+
+    pop();
+}
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+}
+
 
 
 
