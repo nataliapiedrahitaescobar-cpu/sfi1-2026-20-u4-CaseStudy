@@ -139,7 +139,7 @@ class PainterTask extends FSMTask {
 
             this.activeAnimations.push({
                 startTime: ev.timestamp,
-                duration: ev.delta * 100,
+                duration: ev.delta * 1000,
                 type: ev.sound,
                 x: random(width * 0.2, width * 0.8),
                 y: random(height * 0.2, height * 0.8),
@@ -177,24 +177,27 @@ function setup() {
     });
 
     bridge.onData((data) => {
-     
         //Microbit
         if(data.type === "microbit") {
             painter.postEvent({
                 type: EVENTS.DATA,
-                payload: data
+                payload: {
+                    x: data.x,
+                    y: data.y,
+                    btnA: data.btnA,
+                    btnB: data.btnB
+                }
             });
         }
 
         //Strudel
-        else if(data.type === "strudel") {
-            painter.postEvent({
-                type: "STRUDEL",
-                timestamp: data.timestamp,
-                payload: data.payload
-            });
+        else if(data.type === "strudel"){
+            painter.handleStrudel(data);
         }
     });
+
+     
+   
 
     connectBtn = createButton("Conectar");
     connectBtn.position(10, 10);
@@ -219,7 +222,7 @@ function drawRunning() {
  let now = Date.now();
 
  for(let i = painter.activeAnimations.length - 1; i >= 0; i--) {
-    let.anim = painter.activeAnimations[i];
+    let anim = painter.activeAnimations[i];
 
     let elapsed = now - anim.startTime;
     let progress = elapsed / anim.duration;
@@ -252,7 +255,7 @@ function dibujarBombo(anim, p, c) {
     let d = lerp(100, 600, p);
     let alpha = lerp(255, 0, p);
     fill(c[0], c[1], c[2], alpha);
-    rect(width / 2, height / 2, w, 50);
+    rect(width / 2, height / 2, 50);
 }
 
 function dibujarCaja(anim, p, c) {
@@ -296,7 +299,7 @@ function getColorForSound(s) {
 
     let charCode = s.charCodeAt(0) || 0;
     return [
-         (charCode * 123) % 255,
+        (charCode * 123) % 255,
         (charCode * 456) % 255,
         (charCode * 789) % 255
     ];
