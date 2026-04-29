@@ -216,7 +216,7 @@ function drawRunning() {
 
  painter.processStrudel();
 
- let.now = Date.now();
+ let now = Date.now();
 
  for(let i = painter.activeAnimations.length - 1; i >= 0; i--) {
     let.anim = painter.activeAnimations[i];
