@@ -12,6 +12,8 @@ KEY_RELEASED: "KEY_RELEASED",
 class PainterTask extends FSMTask {
     constructor() {
         super();
+
+        //Microbit data
         this.c = color(181, 157, 0); //Color inicial del dibujo. se actualiza al soltar el botón B del microbit, con un color aleatorio.
         this.lineSize = 100;
         this.angle = 0;
@@ -29,14 +31,19 @@ class PainterTask extends FSMTask {
             ready: false,
         };
 
+        //Strudel data
+        this.eventQueue = [];
+        this.activeAnimations = [];
+        this.LATENCY_CORRECTION = 0; //Tiempo en ms para corregir la latencia de la conexión, se puede ajustar según la calidad de la conexión.
+
         this.transitionTo(this.estado_esperando); //Estado inicial de la máquina de estados.
     }
 
     //Estado esperando conexión
     estado_esperando = (ev) => {
-        if (ev.type === "Entry") {
+        if (ev.type === "ENTRY") {
             cursor();
-            console.log("Esperando conexión...");
+            console.log("Waiting for connection...");
 
         }
         else if (ev.type === EVENTS.CONNECT) {
@@ -69,16 +76,11 @@ class PainterTask extends FSMTask {
         else if(ev.type === EVENTS.DATA) {
             this.updateLogic(ev.payload); //Actualiza la lógica de dibujo con los datos recibidos del microbit.
         }
-        else if(ev.type === EVENTS.KEY_PRESSED) {
-            this.handleKeys(ev.keyCode, ev.key); //Maneja los eventos de teclas presionadas, en este caso, el botón A y B del microbit.
-        }
-        else if(ev.type === EVENTS.KEY_RELEASED) {
-            this.handleKeyRelease(ev.keyCode, ev.key); //Maneja los eventos de teclas soltadas.
-        }
         else if(ev.type === "EXIT") {
             cursor();
         }
     };
+     
 
     //Lógica del microbit
     updateLogic(data) {
@@ -104,13 +106,54 @@ class PainterTask extends FSMTask {
         this.rxData.prevA = this.rxData.btnA;
         this.rxData.prevB = this.rxData.btnB;
     }
+
+    //Strudel
+    handleStrudel(ev) {
+        if(!ev.payload || !ev.payload.args) return; //Valida que el evento tenga payload y args antes de procesarlo.
+
+        let params = {}; //Objeto para almacenar los parámetros del evento.
+        let args = ev.payload.args; 
+
+        for(let i = 0; i < args.length; i += 2) { 
+            params[args[i]] = args[i + 1];
+        }
+
+        this.eventQueue.push({
+            timestamp: ev.timestamp,
+            sound: params.s,
+            delta: params.delta || 0.25
+        });
+
+        this.eventQueue.sort((a, b) => a.timestamp - b.timestamp); 
+
+    }
+
+    processStrudel() {
+        let now = Date.now() + this.LATENCY_CORRECTION;
+
+        while(
+            this.eventQueue.length > 0 &&
+            now >= this.eventQueue[0].timestamp
+        ) {
+            let ev = this.eventQueue.shift();
+
+            this.activeAnimations.push({
+                startTime: ev.timestamp,
+                duration: ev.delta * 100,
+                type: ev.sound,
+                x: random(width * 0.2, width * 0.8),
+                y: random(height * 0.2, height * 0.8),
+                color: getColorForSound(ev.sound) 
+            });
+        }
+    }
 }
 
 //SKETCH
 let painter;
 let bridge;
 let connectBtn; 
-const renderer = new Renderer();
+const renderer = new Map();
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -126,7 +169,7 @@ function setup() {
 
     bridge.onDisconnect(() =>  {
         connectBtn.html("Conectar");
-        painter.postEvent({ type:  EVENTS,DISCONNECT});
+        painter.postEvent({ type:  EVENTS.DISCONNECT});
     });
 
     bridge.onStatus((s) => {
@@ -134,15 +177,23 @@ function setup() {
     });
 
     bridge.onData((data) => {
-        painter.postEvent({
-            type: EVENTS.DATA,
-            payload: {
-                x: data.x,
-                y: data.y,
-                btnA: data.btnA,
-                btnB: data.btnB,
-            }
-        });
+     
+        //Microbit
+        if(data.type === "microbit") {
+            painter.postEvent({
+                type: EVENTS.DATA,
+                payload: data
+            });
+        }
+
+        //Strudel
+        else if(data.type === "strudel") {
+            painter.postEvent({
+                type: "STRUDEL",
+                timestamp: data.timestamp,
+                payload: data.payload
+            });
+        }
     });
 
     connectBtn = createButton("Conectar");
@@ -161,34 +212,94 @@ function draw() {
 }
 
 function drawRunning() {
-let.mb = painter.rxData;
+ background(0, 30);
 
-if(!mb || !mb.ready) return;
+ painter.processStrudel();
 
-if(mb.btnB) {
-    fill(painter.c);
-} else {
-    noFill();
+ let.now = Date.now();
+
+ for(let i = painter.activeAnimations.length - 1; i >= 0; i--) {
+    let.anim = painter.activeAnimations[i];
+
+    let elapsed = now - anim.startTime;
+    let progress = elapsed / anim.duration;
+
+    if(progress <= 1.0) {
+        dibujarElemento(anim, progress);
+    } else{
+        painter.activeAnimations.splice(i, 1);
+    }
+ }
+    
 }
 
-if(mb.btnA) {
+//Visuales Strudel
+const visualMap = {
+    'tr909bd': dibujarBombo,
+    'tr909sd': dibujarCaja,
+    'tr909hh': dibujarHat,
+    'tr909oh': dibujarHat
+};
+
+function dibujarElemento(anim, p){
     push();
-    translate(width / 2, height / 2);
-
-    let circleResolution = int(map(mb.y, 0, height, 2, 10));
-    let radius = map(mb.x, 0, width, 10, width / 2);
-    let angle = TAU / circleResolution;
-
-    beginShape();
-    for(let i = 0; i <= circleResolution; i++) {
-        let x = cos(angle * i) * radius;
-        let y = sin(angle * i) * radius;
-        vertex(x, y);
-    }
-    endShape();
-
+    let fn = visualMap[anim.type] || dibujarDefault;
+    fn(anim, p, anim.color);
     pop();
 }
+
+function dibujarBombo(anim, p, c) {
+    let d = lerp(100, 600, p);
+    let alpha = lerp(255, 0, p);
+    fill(c[0], c[1], c[2], alpha);
+    rect(width / 2, height / 2, w, 50);
+}
+
+function dibujarCaja(anim, p, c) {
+    let w = lerp(width, 0, p);
+    let alpha = lerp(255, 0, p);
+    fill(c[0], c[1], c[2]);
+    rect(width / 2, height / 2, w, 50);
+}
+
+function dibujarHat(anim, p , c){
+    let sz = lerp(40, 0, p);
+    fill(c[0], c[1], c[2]);
+    rect(anim.x, anim.y, sz, sz);
+}
+
+function dibujarDefault(anim, p, c) {
+    let size = lerp(100, 0, p);
+    let angle = p * TWO_PI;
+
+    translate(anim.x, anim.y)
+    rotate(angle);
+
+    stroke(c[0], c[1], c[2]);
+    strokeWeight(2);
+    noFill();
+
+    rect(0, 0, size, size);
+    line(-size, 0, size, 0);
+    line(0, -size, 0, size);
+}
+
+function getColorForSound(s) {
+    const colors = {
+        'tr909bd': [255, 0, 80],
+        'tr909sd': [0, 200, 255],
+        'tr909hh': [255, 255, 0],
+        'tr909oh': [255, 150, 0]
+    };
+
+    if (colors[s]) return colors[s];
+
+    let charCode = s.charCodeAt(0) || 0;
+    return [
+         (charCode * 123) % 255,
+        (charCode * 456) % 255,
+        (charCode * 789) % 255
+    ];
 }
 
 function windowResized() {
