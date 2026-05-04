@@ -128,6 +128,8 @@ if (DEVICE === "strudel") {
     verbose: VERBOSE 
   });
 
+}
+
   //Open Stage Control
   if (DEVICE === "osc") {
     const osc = require("osc");
@@ -140,9 +142,7 @@ if (DEVICE === "strudel") {
     return new OSCAdapter(udpPort);
   }
 
-  return new SimAdapter({ hz: SIM_HZ});
-}
-  
+
 
   // if (DEVICE === "microbit-bin") {
   //   const path = SERIAL_PATH ?? await findMicrobitPort();
