@@ -120,7 +120,7 @@ class PainterTask extends FSMTask {
             let ev = this.eventQueue.shift();
 
             this.activeAnimations.push({
-                startTime: now, // 🔥 clave para que sí se vea
+                startTime: now,
                 duration: ev.delta * 1000,
                 type: ev.sound,
                 x: random(width * 0.2, width * 0.8),
