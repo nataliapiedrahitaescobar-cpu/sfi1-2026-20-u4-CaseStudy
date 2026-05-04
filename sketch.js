@@ -1,5 +1,4 @@
-//Maneja la conexión con el microbit, Recibe los datos del microbit y dibuja en pantalla con esos datos. 
-//Utiliza una máquina de estados para manejar la lógica de la aplicación.
+//Maneja la conexión con el microbit y Strudel
 
 const EVENTS = {
 CONNECT: "CONNECT",
@@ -87,7 +86,6 @@ class PainterTask extends FSMTask {
         this.rxData.prevB = this.rxData.btnB;
     }
 
-
     handleStrudel(data) {
         if(!data.payload || !data.payload.args) return;
 
@@ -98,8 +96,13 @@ class PainterTask extends FSMTask {
             params[args[i]] = args[i + 1];
         }
 
+        // 🔥 FIX: timestamp acumulado
+        let lastTime = this.eventQueue.length > 0 
+            ? this.eventQueue[this.eventQueue.length - 1].timestamp 
+            : Date.now();
+
         this.eventQueue.push({
-            timestamp: Date.now(),
+            timestamp: lastTime + ((params.delta || 0.25) * 1000),
             sound: params.s,
             delta: params.delta || 0.25
         });
@@ -107,7 +110,6 @@ class PainterTask extends FSMTask {
         this.eventQueue.sort((a, b) => a.timestamp - b.timestamp);
     }
 
-    
     processStrudel() {
         if(!this.eventQueue || this.eventQueue.length === 0) return;
 
@@ -121,14 +123,14 @@ class PainterTask extends FSMTask {
 
             this.activeAnimations.push({
                 startTime: now,
-                duration: ev.delta * 1000,
+                duration: ev.delta * 2000, // 🔥 duración más larga
                 type: ev.sound,
                 x: random(width * 0.2, width * 0.8),
                 y: random(height * 0.2, height * 0.8),
                 color: getColorForSound(ev.sound)
             });
 
-            console.log("Animacion creada:", this.activeAnimations.length);
+            console.log("Animación creada:", this.activeAnimations.length);
         }
     }
 }
@@ -142,6 +144,8 @@ const renderer = new Map();
 function setup() {
     createCanvas(windowWidth, windowHeight);
     background(255);
+
+    rectMode(CENTER); // 🔥 FIX importante
 
     painter = new PainterTask();
     bridge = new BridgeClient();
@@ -220,18 +224,21 @@ function dibujarBombo(anim, p, c) {
     let d = lerp(100, 600, p);
     let alpha = lerp(255, 0, p);
     fill(c[0], c[1], c[2], alpha);
-    circle(width / 2, height / 2, d); // 🔥 FIX
+    noStroke();
+    circle(width / 2, height / 2, d);
 }
 
 function dibujarCaja(anim, p, c) {
     let w = lerp(width, 0, p);
     fill(c[0], c[1], c[2]);
+    noStroke();
     rect(width / 2, height / 2, w, 50);
 }
 
 function dibujarHat(anim, p , c){
     let sz = lerp(40, 0, p);
     fill(c[0], c[1], c[2]);
+    noStroke();
     rect(anim.x, anim.y, sz, sz);
 }
 
