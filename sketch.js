@@ -87,7 +87,7 @@ class PainterTask extends FSMTask {
         this.rxData.prevB = this.rxData.btnB;
     }
 
-    // 🔥 ARREGLADO
+
     handleStrudel(data) {
         if(!data.payload || !data.payload.args) return;
 
@@ -99,7 +99,7 @@ class PainterTask extends FSMTask {
         }
 
         this.eventQueue.push({
-            timestamp: data.timestamp, // 🔥 USAR el timestamp real
+            timestamp: Date.now(),
             sound: params.s,
             delta: params.delta || 0.25
         });
@@ -107,7 +107,7 @@ class PainterTask extends FSMTask {
         this.eventQueue.sort((a, b) => a.timestamp - b.timestamp);
     }
 
-    // 🔥 ARREGLADO
+    
     processStrudel() {
         if(!this.eventQueue || this.eventQueue.length === 0) return;
 
@@ -127,6 +127,8 @@ class PainterTask extends FSMTask {
                 y: random(height * 0.2, height * 0.8),
                 color: getColorForSound(ev.sound)
             });
+
+            console.log("Animacion creada:", this.activeAnimations.length);
         }
     }
 }
