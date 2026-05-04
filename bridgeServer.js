@@ -26,6 +26,7 @@ const MicrobitASCIIAdapter = require("./adapters/MicrobitASCIIAdapter"); //El ha
 const Microbit2ASCIIAdapter = require("./adapters/Microbit2ASCIIAdapter"); 
 const MicrobitBinaryAdapter = require ("./adapters/MicrobitBinaryAdapter.js"); //El hardware con protocolo binario.
 const StrudelAdapter = require ("./adapters/StrudelAdapter"); //El adapter para conectar con Strudel.
+const OSCAdapter = requite ("./adapters/OSCAdapter");
 const log = {
   info: (...args) => console.log(`[${new Date().toISOString()}] [INFO]`, ...args),
   warn: (...args) => console.warn(`[${new Date().toISOString()}] [WARN]`, ...args),
@@ -126,6 +127,20 @@ if (DEVICE === "strudel") {
     url: "ws://localhost:8080", //Dirección del servidor de Strudel
     verbose: VERBOSE 
   });
+
+  //Open Stage Control
+  if (DEVICE === "osc") {
+    const osc = require("osc");
+
+    const udpPort = new osc.UDPPort({
+      localAddress: "0.0.0.0",
+      localPort: 9000
+    });
+
+    return new OSCAdapter(udpPort);
+  }
+
+  return new SimAdapter({ hz: SIM_HZ});
 }
   
 
@@ -179,9 +194,19 @@ async function main() {
       btnA: !!d.btnA, //Se convierte el botón A en valor booleano.
       btnB: !!d.btnB,
       t: nowMs() 
-
     })
+
+    //Caso 3: OSC
+    if(d.type === "osc") {
+      broadcast(wss, {
+        type: "osc",
+        payload: d.payload,
+        t: nowMs()
+      });
+      return;
+    }
   };
+
 
   status(wss, "ready", `bridge up (${DEVICE})`);
 
