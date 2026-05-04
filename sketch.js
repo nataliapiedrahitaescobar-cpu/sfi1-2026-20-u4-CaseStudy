@@ -96,17 +96,11 @@ class PainterTask extends FSMTask {
             params[args[i]] = args[i + 1];
         }
 
-        // 🔥 FIX: timestamp acumulado
-        let lastTime = this.eventQueue.length > 0 
-            ? this.eventQueue[this.eventQueue.length - 1].timestamp 
-            : Date.now();
-
-        this.eventQueue.push({
-            timestamp: lastTime + ((params.delta || 0.25) * 1000),
-            sound: params.s,
-            delta: params.delta || 0.25
-        });
-
+       this.eventQueue.push({
+          timestamp: data.timestamp, // 🔥 usar tiempo REAL de Strudel
+           sound: params.s,
+          delta: params.delta || 0.25
+      }); 
         this.eventQueue.sort((a, b) => a.timestamp - b.timestamp);
     }
 
