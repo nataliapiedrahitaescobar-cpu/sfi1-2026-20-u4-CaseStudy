@@ -119,7 +119,7 @@ class PainterTask extends FSMTask {
         }
 
         this.eventQueue.push({
-            timestamp: Date.now(),
+            timestamp: Date.now() + 50,
             sound: params.s,
             delta: params.delta || 0.25
         });
@@ -131,6 +131,8 @@ class PainterTask extends FSMTask {
     processStrudel() {
         let now = Date.now() + this.LATENCY_CORRECTION;
 
+        console.log("QUEUE:", this.eventQueue[0].length);
+
         while(
             this.eventQueue.length > 0 &&
             now >= this.eventQueue[0].timestamp
@@ -139,13 +141,17 @@ class PainterTask extends FSMTask {
 
             this.activeAnimations.push({
                 startTime: ev.timestamp,
-                duration: ev.delta * 1000,
+                duration: ev.delta * 2000,
                 type: ev.sound,
                 x: random(width * 0.2, width * 0.8),
                 y: random(height * 0.2, height * 0.8),
                 color: getColorForSound(ev.sound) 
             });
+
+            console.log("ANIMACIÓN CREADA:", ev.sound);
         }
+
+        console.log("ACTIVE:", this,this.activeAnimations.length);
     }
 }
 
@@ -216,11 +222,11 @@ function draw() {
 }
 
 function drawRunning() {
- background(0, 30);
+ background(0);
 
  painter.processStrudel();
 
- let now = Date.now();
+ let now = Date.now() + painter.LATENCY_CORRECTION;
 
  for(let i = painter.activeAnimations.length - 1; i >= 0; i--) {
     let anim = painter.activeAnimations[i];
