@@ -87,20 +87,25 @@ class PainterTask extends FSMTask {
     }
 
     handleStrudel(data) {
-        if(!data.payload || !data.payload.args) return;
+        if(!data.payload) return;
 
-        let params = {};
-        let args = data.payload.args;
+        let params = data.payload;
 
-        for(let i = 0; i < args.length; i += 2) {
-            params[args[i]] = args[i + 1];
+        //Sincronización del tiempo
+        if(!this.synced){
+            this.timeOffset = Date.now() - data.timestamp;
+            this.synced = true;
+            console.log("SYNC OK", this.timeOffset);
         }
 
-       this.eventQueue.push({
-          timestamp: data.timestamp, // 🔥 usar tiempo REAL de Strudel
-           sound: params.s,
-          delta: params.delta || 0.25
-      }); 
+        this.eventQueue.push({
+            timestamp: data.timestamp + this.timeOffset,
+            sound: params.s,
+            delta: params.delta || 0.25
+        });
+
+        console.log("Evento agregado:", params.s);
+
         this.eventQueue.sort((a, b) => a.timestamp - b.timestamp);
     }
 
@@ -117,7 +122,7 @@ class PainterTask extends FSMTask {
 
             this.activeAnimations.push({
                 startTime: now,
-                duration: ev.delta * 2000, // 🔥 duración más larga
+                duration: ev.delta * 2000, 
                 type: ev.sound,
                 x: random(width * 0.2, width * 0.8),
                 y: random(height * 0.2, height * 0.8),
@@ -139,7 +144,7 @@ function setup() {
     createCanvas(windowWidth, windowHeight);
     background(255);
 
-    rectMode(CENTER); // 🔥 FIX importante
+    rectMode(CENTER); 
 
     painter = new PainterTask();
     bridge = new BridgeClient();
