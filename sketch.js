@@ -119,7 +119,7 @@ class PainterTask extends FSMTask {
         }
 
         this.eventQueue.push({
-            timestamp: ev.timestamp,
+            timestamp: Date.now(),
             sound: params.s,
             delta: params.delta || 0.25
         });
@@ -177,6 +177,7 @@ function setup() {
     });
 
     bridge.onData((data) => {
+        console.log("DATA RECIBIDA:", data);
         //Microbit
         if(data.type === "microbit") {
             painter.postEvent({
@@ -255,13 +256,13 @@ function dibujarBombo(anim, p, c) {
     let d = lerp(100, 600, p);
     let alpha = lerp(255, 0, p);
     fill(c[0], c[1], c[2], alpha);
-    rect(width / 2, height / 2, 50);
+    circle(width / 2, height / 2, 50);
 }
 
 function dibujarCaja(anim, p, c) {
     let w = lerp(width, 0, p);
     let alpha = lerp(255, 0, p);
-    fill(c[0], c[1], c[2]);
+    fill(c[0], c[1], c[2], alpha);
     rect(width / 2, height / 2, w, 50);
 }
 
