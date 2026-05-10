@@ -36,6 +36,13 @@ class PainterTask extends FSMTask {
         this.activeAnimations = []; //Animaciones que ese están mostrando
         this.LATENCY_CORRECTION = 0; //Ajuste de tiempo
 
+        //Variable OSC
+        this.oscControls = {
+            rgb: [255,0,80],
+            sizeMultiplier: 1,
+            rainbowMode: false
+        };
+
         this.transitionTo(this.estado_esperando);
     }
 
@@ -111,6 +118,36 @@ class PainterTask extends FSMTask {
         this.eventQueue.sort((a, b) => a.timestamp - b.timestamp);
     }
 
+    handleOSC(data){
+        if(!data.payload) return;
+
+        const address = data.payload.address
+        const args = data.payload.args || [];
+
+        console.log("OSC:", address, args);
+
+        // RGB Control
+        if(address === "/rgb_1"){
+            this.oscControls.rgb = [
+                Number(args[0] || 0),
+                Number(args[1] || 0),
+                Number(args[2] || 0),
+            ];
+        }
+
+        //Size Control
+        if(address === "/size") {
+            this.oscControls.sizeMultiplier =
+            Number(args[0] || 1);
+        }
+
+        //Mode Control
+        if(address === "/rainbow") {
+            this.oscControls.rainbowMode =
+            Boolean(args[0]);
+        }
+    }
+
     processStrudel() {//Donde se ejecuta cada frame
         if(!this.eventQueue || this.eventQueue.length === 0) return; //Si no hay eventos, sale rápido
 
@@ -168,6 +205,10 @@ function setup() {
         if(data.type === "strudel"){
             painter.handleStrudel(data);
         }
+
+        if(data.type === "osc") {
+            painter.handleOSC(data);
+        }
     });
 
     connectBtn = createButton("Conectar");
@@ -191,6 +232,16 @@ function drawRunning() {
     painter.processStrudel(); //Procesar eventos
 
     let now = Date.now();
+
+    if(painter.oscControls.rainbowMode){
+        colorMode(HSB);
+
+        let hue = (frameCount * 2) % 255;
+
+        background(hue, 150, 80, 0.1);
+
+        colorMode(RGB);
+    }
 
     for(let i = painter.activeAnimations.length - 1; i >= 0; i--) { //Loop de animaciones
         let anim = painter.activeAnimations[i];
@@ -223,7 +274,7 @@ function dibujarElemento(anim, p){
 
 //Funciones de dibujo
 function dibujarBombo(anim, p, c) {
-    let d = lerp(100, 600, p);
+    let d = lerp(100,600* painter.oscControls.sizeMultiplier,p);
     let alpha = lerp(255, 0, p);
     fill(c[0], c[1], c[2], alpha);
     noStroke();
@@ -262,7 +313,7 @@ function dibujarDefault(anim, p, c) {
 
 function getColorForSound(s) {
     const colors = {
-        'tr909bd': [255, 0, 80],
+        'tr909bd': painter.oscControls.rgb,
         'tr909sd': [0, 200, 255],
         'tr909hh': [255, 255, 0],
         'tr909oh': [255, 150, 0]
