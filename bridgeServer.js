@@ -170,6 +170,8 @@ async function main() {
   );
    
   //Eventos del adapter
+ for (const adapter of adapters) {
+
   adapter.onConnected = (detail) => {
     log.info(`[ADAPTER] Device Connected: ${detail}`);
     status(wss, "connected", detail);
@@ -187,126 +189,117 @@ async function main() {
 
   adapter.onData = (d) => {
 
-  // CASO 1: Strudel
-  if (d.type === "strudel") {
-    broadcast(wss, d);
-    return;
-  }
+    // STRUDEL
+    if (d.type === "strudel") {
+      broadcast(wss, d);
+      return;
+    }
 
-  // CASO 2: OSC (control persistente)
-  else if (d.type === "osc") {
-    broadcast(wss, {
-      type: "osc",
-      payload: d.payload,
-      t: nowMs()
-    });
-    return;
-  }
+    // OSC
+    else if (d.type === "osc") {
 
-  // CASO 3: Microbit
-  else {
-    broadcast(wss, {
-      type: "microbit",
-      x: d.x,
-      y: d.y,
-      btnA: !!d.btnA,
-      btnB: !!d.btnB,
-      t: nowMs()
-    });
-  }
-};
+      broadcast(wss, {
+        type: "osc",
+        payload: d.payload,
+        t: nowMs()
+      });
+
+      return;
+    }
+
+    // MICROBIT
+    else {
+
+      broadcast(wss, {
+        type: "microbit",
+        x: d.x,
+        y: d.y,
+        btnA: !!d.btnA,
+        btnB: !!d.btnB,
+        t: nowMs()
+      });
+    }
+  };
+}
+
+  
 
   status(wss, "ready", `bridge up (${DEVICE})`);
 
   //Conexión con el cliente. 
-  wss.on("connection", (ws, req) => { //Conexión con el cliente. Aquí se conecta el navegador y recibe los estados.
-    log.info(`[NETWORK] Remote Client connected from ${req.socket.remoteAddress}. Total clients: ${wss.clients.size}`);
+wss.on("connection", (ws, req) => { 
+  //Conexión con el cliente. Aquí se conecta el navegador y recibe los estados.
 
-    const state = adapter.connected ? "connected" : "ready";
+  log.info(
+    `[NETWORK] Remote Client connected from ${req.socket.remoteAddress}. Total clients: ${wss.clients.size}`
+  );
 
-    const detail = adapter.connected
-      ? adapter.getConnectionDetail()
-      : `bridge (${DEVICE})`;
+  //Enviar estado inicial al cliente
+  ws.send(JSON.stringify({
+    type: "status",
+    state: "connected",
+    detail: "bridge active",
+    t: nowMs()
+  }));
 
-    ws.send(JSON.stringify({ type: "status", state, detail, t: nowMs() }));
 
-    ws.on("message", async (raw) => {
-      const msg = safeJsonParse(raw.toString("utf8"));
-      if (!msg) return;
+  //Mensajes recibidos desde el frontend
+  ws.on("message", async (raw) => {
 
-      if (msg.cmd === "connect") {
-        log.info(`[NETWORK] Client requested adapter connect`);
+    const msg = safeJsonParse(raw.toString("utf8"));
 
-        if (adapter.connected) {
-         ws.send(JSON.stringify({
-          type: "status",
-          state: "connected",
-          detail: adapter.getConnectionDetail(),
-          t: nowMs()
-        }));
-        return;
-      }
+    if (!msg) return;
 
-        
+    //Comandos opcionales hacia adapters
+    if (msg.cmd === "setLed") {
+
+      for (const adapter of adapters) {
+
         try {
-          await adapter.connect();
+          await adapter.handleCommand?.(msg);
+
         } catch (e) {
-          const detail = `connect failed: ${e.message || e}`;
+
+          const detail = `command failed: ${e.message || e}`;
+
           log.error(`[ADAPTER] ` + detail);
+
           status(wss, "error", detail);
         }
       }
-        
-
-      if (msg.cmd === "disconnect") {
-        log.info(`[NETWORK] Client requested adapter disconnect`);
-     
-        try{
-          await adapter.disconnect();
-        } catch (e) {
-          const detail = `disconnect failed: ${e.message || e}`;
-          log.error(detail);
-          status (wss, "error", detail);
-        }
-      }
-
-      if (msg.cmd === "setSimHz" && adapter instanceof SimAdapter) {
-        log.info(`Setting Sim Hz to ${msg.hz}`); 
-        await adapter.handleCommand(msg);
-        status(wss, "connected", `sim hz=${adapter.hz}`);
-      }
-      
-      if (msg.cmd === "setLed") {
-        try {
-          await adapter.handleCommand?.(msg);
-          } catch (e) {
-            const detail = `command failed: ${e.message || e}`;
-            log.error(`[ADAPTER] ` + detail);
-            status(wss, "error", detail);
-          }
-        }
-      });
-             
-      ws.on("close", () => {
-        log.info(`[NETWORK] Remote Client disconnected. Total clients left: ${wss.clients.size}`);
-        if (wss.clients.size === 0) {
-          log.info("[HW-POLICY] No more remote clients. Auto-disconnecting adapter device to free resources...");
-          adapter.disconnect();
-        }
-      });
-    });
-    
-    //Auto-connect solo para el simulador.
-    if (DEVICE === "sim") {
-      await adapter.connect();
     }
-  }
-  
-  main().catch((e) => {
-    log.error("Fatal:", e);
-    process.exit(1);
   });
-        
+
+
+  //Cuando el cliente se desconecta
+  ws.on("close", () => {
+
+    log.info(
+      `[NETWORK] Remote Client disconnected. Total clients left: ${wss.clients.size}`
+    );
+
+    //Desconectar adapters si no quedan clientes
+    if (wss.clients.size === 0) {
+
+      log.info(
+        "[HW-POLICY] No more remote clients. Auto-disconnecting adapter devices..."
+      );
+
+      for (const adapter of adapters) {
+        adapter.disconnect();
+      }
+    }
+  });
+});
+
+
+//Auto-connect de todos los adapters
+for (const adapter of adapters) {
+  await adapter.connect();
+}
+
+}
+
      
 
 
