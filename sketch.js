@@ -180,50 +180,87 @@ let bridge; //Strudel, microbit y OSC.
 let connectBtn; 
 const renderer = new Map();
 
-
 function setup() {
     createCanvas(windowWidth, windowHeight);
     background(255);
 
-    rectMode(CENTER); 
+    rectMode(CENTER);
+
     painter = new PainterTask();
-    bridge = new BridgeClient("ws://127.0.0.1:8081"); //Strudel
-    
 
+    // Bridge principal
+    bridge = new BridgeClient("ws://127.0.0.1:8081");
+
+    // BOTÓN
+    connectBtn = createButton("Conectar");
+    connectBtn.position(10, 10);
+
+    // EVENTOS DE CONEXIÓN
     bridge.onConnect(() => {
+        console.log("Bridge conectado");
+
         connectBtn.html("Desconectar");
-        painter.postEvent({ type: EVENTS.CONNECT});
+
+        painter.postEvent({
+            type: EVENTS.CONNECT
+        });
     });
 
-    bridge.onDisconnect(() =>  {
+    bridge.onDisconnect(() => {
+        console.log("Bridge desconectado");
+
         connectBtn.html("Conectar");
-        painter.postEvent({ type: EVENTS.DISCONNECT});
+
+        painter.postEvent({
+            type: EVENTS.DISCONNECT
+        });
     });
 
-    bridge.onData((data) => { //Es cuando llega la data y empieza el flujo de Strudel
+    // DATOS RECIBIDOS
+    bridge.onData((data) => {
 
         console.log("DATA RECIBIDA:", data);
 
-        if(data.type === "strudel"){
+        // STRUDEL
+        if (data.type === "strudel") {
             painter.handleStrudel(data);
         }
 
-        if(data.type === "osc") {
+        // OSC
+        else if (data.type === "osc") {
             painter.handleOSC(data);
+        }
+
+        // MICROBIT
+        else if (data.type === "microbit") {
+
+            painter.postEvent({
+                type: EVENTS.DATA,
+                payload: data
+            });
         }
     });
 
- 
-   connectBtn.mousePressed(() => {
-    if(bridge.isOpen) {
-        bridge.close()
-    }
-    else {
-        bridge.open();
-    }
-   });
+    // BOTÓN CONECTAR / DESCONECTAR
+    connectBtn.mousePressed(() => {
 
-    renderer.set(painter.estado_corriendo, drawRunning); //Define que función se dibuja en el estado
+        if (bridge.isOpen) {
+
+            console.log("Cerrando bridge...");
+            bridge.close();
+
+        } else {
+
+            console.log("Abriendo bridge...");
+            bridge.open();
+        }
+    });
+
+    // RENDER
+    renderer.set(
+        painter.estado_corriendo,
+        drawRunning
+    );
 }
 
 function draw() { //Actualiza el estado y dibuja en cada estado
