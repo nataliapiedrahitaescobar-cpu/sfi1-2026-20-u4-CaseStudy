@@ -27,6 +27,9 @@ class OSCAdapter extends BaseAdapter {
             });
 
             this.udpPort.on("message", (msg) => { //Donde llegan todos los mensajes del OSC
+
+                console.log("OSC RAW:", msg); //Debug
+
                 try {
                  const normalized = { //Normalización del sistema, convierte los mensajes crudos en un formato estandar
                     type: "osc", //Identifica el origen
