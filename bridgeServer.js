@@ -150,13 +150,20 @@ if (DEVICE === "strudel") {
 }
 
 async function main() {
-  const wss = new WebSocketServer({ port: WS_PORT }); //Permite que el navegador (sketch.js) se conecte
-  log.info(`WS listening on ws://127.0.0.1:${WS_PORT} device=${DEVICE}`);
 
-  //Adapters
+  const wss = new WebSocketServer({ port: WS_PORT });
+
+  log.info(
+    `WS listening on ws://127.0.0.1:${WS_PORT}`
+  );
+
+  // =========================
+  // ADAPTERS
+  // =========================
+
   const adapters = [];
 
-  //Strudel Adapter
+  // STRUDEL
   adapters.push(
     new StrudelAdapter({
       url: "ws://localhost:8080",
@@ -164,51 +171,81 @@ async function main() {
     })
   );
 
-  //OSC Adapter
+  // OSC
   adapters.push(
     new OSCAdapter(9000)
   );
-   
-  //Eventos del adapter
- for (const adapter of adapters) {
 
-  adapter.onConnected = (detail) => {
-    log.info(`[ADAPTER] Device Connected: ${detail}`);
-    status(wss, "connected", detail);
-  };
 
-  adapter.onDisconnected = (detail) => {
-    log.warn(`[ADAPTER] Device Disconnected: ${detail}`);
-    status(wss, "disconnected", detail);
-  };
+  // =========================
+  // EVENTOS DE CADA ADAPTER
+  // =========================
 
-  adapter.onError = (detail) => {
-    log.error(`[ADAPTER] Device Error: ${detail}`);
-    status(wss, "error", detail);
-  };
+  for (const adapter of adapters) {
 
-  adapter.onData = (d) => {
+    adapter.onConnected = (detail) => {
 
-    // STRUDEL
-    if (d.type === "strudel") {
-      broadcast(wss, d);
-      return;
-    }
+      log.info(
+        `[ADAPTER] Device Connected: ${detail}`
+      );
 
-    // OSC
-    else if (d.type === "osc") {
+      status(wss, "connected", detail);
+    };
 
-      broadcast(wss, {
-        type: "osc",
-        payload: d.payload,
-        t: nowMs()
-      });
 
-      return;
-    }
+    adapter.onDisconnected = (detail) => {
 
-    // MICROBIT
-    else {
+      log.warn(
+        `[ADAPTER] Device Disconnected: ${detail}`
+      );
+
+      status(wss, "disconnected", detail);
+    };
+
+
+    adapter.onError = (detail) => {
+
+      log.error(
+        `[ADAPTER] Device Error: ${detail}`
+      );
+
+      status(wss, "error", detail);
+    };
+
+
+    adapter.onData = (d) => {
+
+      // =========================
+      // STRUDEL
+      // =========================
+
+      if (d.type === "strudel") {
+
+        broadcast(wss, d);
+
+        return;
+      }
+
+
+      // =========================
+      // OSC
+      // =========================
+
+      if (d.type === "osc") {
+
+        broadcast(wss, {
+          type: "osc",
+          payload: d.payload,
+          t: nowMs()
+        });
+
+        return;
+      }
+
+
+      // =========================
+      // MICROBIT
+      // =========================
 
       broadcast(wss, {
         type: "microbit",
@@ -218,89 +255,114 @@ async function main() {
         btnB: !!d.btnB,
         t: nowMs()
       });
-    }
-  };
-}
-
-  
-
-  status(wss, "ready", `bridge up (${DEVICE})`);
-
-  //Conexión con el cliente. 
-wss.on("connection", (ws, req) => { 
-  //Conexión con el cliente. Aquí se conecta el navegador y recibe los estados.
-
-  log.info(
-    `[NETWORK] Remote Client connected from ${req.socket.remoteAddress}. Total clients: ${wss.clients.size}`
-  );
-
-  //Enviar estado inicial al cliente
-  ws.send(JSON.stringify({
-    type: "status",
-    state: "connected",
-    detail: "bridge active",
-    t: nowMs()
-  }));
+    };
+  }
 
 
-  //Mensajes recibidos desde el frontend
-  ws.on("message", async (raw) => {
+  // =========================
+  // STATUS INICIAL
+  // =========================
 
-    const msg = safeJsonParse(raw.toString("utf8"));
-
-    if (!msg) return;
-
-    //Comandos opcionales hacia adapters
-    if (msg.cmd === "setLed") {
-
-      for (const adapter of adapters) {
-
-        try {
-          await adapter.handleCommand?.(msg);
-
-        } catch (e) {
-
-          const detail = `command failed: ${e.message || e}`;
-
-          log.error(`[ADAPTER] ` + detail);
-
-          status(wss, "error", detail);
-        }
-      }
-    }
-  });
+  status(wss, "ready", "bridge up");
 
 
-  //Cuando el cliente se desconecta
-  ws.on("close", () => {
+  // =========================
+  // CLIENTES WS
+  // =========================
+
+  wss.on("connection", (ws, req) => {
 
     log.info(
-      `[NETWORK] Remote Client disconnected. Total clients left: ${wss.clients.size}`
+      `[NETWORK] Remote Client connected from ${req.socket.remoteAddress}. Total clients: ${wss.clients.size}`
     );
 
-    //Desconectar adapters si no quedan clientes
-    if (wss.clients.size === 0) {
 
-      log.info(
-        "[HW-POLICY] No more remote clients. Auto-disconnecting adapter devices..."
+    //Enviar estado inicial
+    ws.send(JSON.stringify({
+      type: "status",
+      state: "connected",
+      detail: "bridge active",
+      t: nowMs()
+    }));
+
+
+    // =========================
+    // MENSAJES DESDE FRONTEND
+    // =========================
+
+    ws.on("message", async (raw) => {
+
+      const msg = safeJsonParse(
+        raw.toString("utf8")
       );
 
-      for (const adapter of adapters) {
-        adapter.disconnect();
+      if (!msg) return;
+
+
+      // COMANDOS OPCIONALES
+      if (msg.cmd === "setLed") {
+
+        for (const adapter of adapters) {
+
+          try {
+
+            await adapter.handleCommand?.(msg);
+
+          } catch (e) {
+
+            const detail =
+              `command failed: ${e.message || e}`;
+
+            log.error(`[ADAPTER] ${detail}`);
+
+            status(wss, "error", detail);
+          }
+        }
       }
-    }
+    });
+
+
+    // =========================
+    // CLIENTE DESCONECTADO
+    // =========================
+
+    ws.on("close", () => {
+
+      log.info(
+        `[NETWORK] Remote Client disconnected. Total clients left: ${wss.clients.size}`
+      );
+
+      if (wss.clients.size === 0) {
+
+        log.info(
+          "[HW-POLICY] No more remote clients. Auto-disconnecting adapter devices..."
+        );
+
+        for (const adapter of adapters) {
+          adapter.disconnect();
+        }
+      }
+    });
   });
+
+
+  // =========================
+  // AUTO CONNECT
+  // =========================
+
+  for (const adapter of adapters) {
+    await adapter.connect();
+  }
+}
+
+
+// =========================
+// START SERVER
+// =========================
+
+main().catch((e) => {
+
+  log.error("Fatal:", e);
+
+  process.exit(1);
 });
-
-
-//Auto-connect de todos los adapters
-for (const adapter of adapters) {
-  await adapter.connect();
-}
-
-}
-
-     
-
-
-
