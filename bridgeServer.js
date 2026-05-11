@@ -153,7 +153,21 @@ async function main() {
   const wss = new WebSocketServer({ port: WS_PORT }); //Permite que el navegador (sketch.js) se conecte
   log.info(`WS listening on ws://127.0.0.1:${WS_PORT} device=${DEVICE}`);
 
-  const adapter = await createAdapter();
+  //Adapters
+  const adapters = [];
+
+  //Strudel Adapter
+  adapters.push(
+    new StrudelAdapter({
+      url: "ws://localhost:8080",
+      verbose: VERBOSE
+    })
+  );
+
+  //OSC Adapter
+  adapters.push(
+    new OSCAdapter(9000)
+  );
    
   //Eventos del adapter
   adapter.onConnected = (detail) => {
