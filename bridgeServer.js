@@ -178,35 +178,36 @@ async function main() {
     status(wss, "error", detail);
   };
 
-  adapter.onData = (d) => { //Son los eventos del adapter, es donde se reciben los datos del parser, los coniverte a JSON y los envía al navegador.
-     
-    //Caso 1: Datos del Strudel
-    if(d.type === "strudel") {
-      broadcast(wss, d); //Envía los datos del Strudel al navegador.
-      return;
-    }
-    
-    //Caso 2: Datos del microbit
+  adapter.onData = (d) => {
+
+  // CASO 1: Strudel
+  if (d.type === "strudel") {
+    broadcast(wss, d);
+    return;
+  }
+
+  // CASO 2: OSC (control persistente)
+  else if (d.type === "osc") {
+    broadcast(wss, {
+      type: "osc",
+      payload: d.payload,
+      t: nowMs()
+    });
+    return;
+  }
+
+  // CASO 3: Microbit
+  else {
     broadcast(wss, {
       type: "microbit",
       x: d.x,
       y: d.y,
-      btnA: !!d.btnA, //Se convierte el botón A en valor booleano.
+      btnA: !!d.btnA,
       btnB: !!d.btnB,
-      t: nowMs() 
-    })
-
-    //Caso 3: OSC
-    if(d.type === "osc") {
-      broadcast(wss, {
-        type: "osc",
-        payload: d.payload,
-        t: nowMs()
-      });
-      return;
-    }
-  };
-
+      t: nowMs()
+    });
+  }
+};
 
   status(wss, "ready", `bridge up (${DEVICE})`);
 

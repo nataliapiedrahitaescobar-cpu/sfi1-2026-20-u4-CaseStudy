@@ -176,10 +176,10 @@ class PainterTask extends FSMTask {
 
 // SKETCH
 let painter;
-let bridge; //Strudel
-let oscBridge; //OSC
+let bridge; //Strudel, microbit y OSC.
 let connectBtn; 
 const renderer = new Map();
+
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -188,7 +188,7 @@ function setup() {
     rectMode(CENTER); 
     painter = new PainterTask();
     bridge = new BridgeClient("ws://127.0.0.1:8081"); //Strudel
-    oscBridge = new BridgeClient("ws://127.0.0.1:8086"); //OSC
+    
 
     bridge.onConnect(() => {
         connectBtn.html("Desconectar");
