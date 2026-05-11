@@ -176,7 +176,8 @@ class PainterTask extends FSMTask {
 
 // SKETCH
 let painter;
-let bridge;
+let bridge; //Strudel
+let oscBridge; //OSC
 let connectBtn; 
 const renderer = new Map();
 
@@ -186,7 +187,8 @@ function setup() {
 
     rectMode(CENTER); 
     painter = new PainterTask();
-    bridge = new BridgeClient();
+    bridge = new BridgeClient("ws://127.0.0.1:8081"); //Strudel
+    oscBridge = new BridgeClient("ws://127.0.0.1:8086"); //OSC
 
     bridge.onConnect(() => {
         connectBtn.html("Desconectar");
@@ -211,11 +213,25 @@ function setup() {
         }
     });
 
+    oscBridge.onData((data) => {
+        console.log("OSC RECIBIDO:", data);
+
+        if(data.type === "osc") {
+            painter.handleOSC(data);
+        }
+    });
+
     connectBtn = createButton("Conectar");
     connectBtn.position(10, 10);
     connectBtn.mousePressed(() =>  {
-        if(bridge.isOpen) bridge.close();
-        else bridge.open();
+        if(bridge.isOpen) {
+            bridge.close();
+            oscBridge.close();
+        }
+        else {
+            bridge.open();
+            oscBridge.open();
+        }
     });
 
     renderer.set(painter.estado_corriendo, drawRunning); //Define que función se dibuja en el estado
