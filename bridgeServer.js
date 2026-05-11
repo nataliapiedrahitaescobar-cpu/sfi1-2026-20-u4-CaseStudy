@@ -166,7 +166,7 @@ async function main() {
   // STRUDEL
   adapters.push(
     new StrudelAdapter({
-      url: "ws://localhost:8082",
+      url: "ws://localhost:8080",
       verbose: VERBOSE
     })
   );
