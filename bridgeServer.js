@@ -132,14 +132,7 @@ if (DEVICE === "strudel") {
 
   //Open Stage Control
   if (DEVICE === "osc") {
-    const osc = require("osc");
-
-    const udpPort = new osc.UDPPort({
-      localAddress: "0.0.0.0",
-      localPort: 9000
-    });
-
-    return new OSCAdapter(udpPort);
+   return new OSCAdapter();
   }
 
 

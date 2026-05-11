@@ -53,7 +53,7 @@ class OSCAdapter extends BaseAdapter {
 
             this.udpPort.open(); //Activa todo el listener OSC
         }catch (err) {
-            if (this.onError) this.onError
+            if (this.onError) this.onError(err);
         }
     }
 

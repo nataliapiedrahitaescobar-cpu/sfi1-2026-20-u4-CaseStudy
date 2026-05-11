@@ -213,26 +213,15 @@ function setup() {
         }
     });
 
-    oscBridge.onData((data) => {
-        console.log("OSC RECIBIDO:", data);
-
-        if(data.type === "osc") {
-            painter.handleOSC(data);
-        }
-    });
-
-    connectBtn = createButton("Conectar");
-    connectBtn.position(10, 10);
-    connectBtn.mousePressed(() =>  {
-        if(bridge.isOpen) {
-            bridge.close();
-            oscBridge.close();
-        }
-        else {
-            bridge.open();
-            oscBridge.open();
-        }
-    });
+ 
+   connectBtn.mousePressed(() => {
+    if(bridge.isOpen) {
+        bridge.close()
+    }
+    else {
+        bridge.open();
+    }
+   });
 
     renderer.set(painter.estado_corriendo, drawRunning); //Define que función se dibuja en el estado
 }
