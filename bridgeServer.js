@@ -166,14 +166,14 @@ async function main() {
   // STRUDEL
   adapters.push(
     new StrudelAdapter({
-      url: "ws://localhost:8080",
+      url: "ws://localhost:8082",
       verbose: VERBOSE
     })
   );
 
   // OSC
   adapters.push(
-    new OSCAdapter(9000)
+    new OSCAdapter(8086)
   );
 
 
