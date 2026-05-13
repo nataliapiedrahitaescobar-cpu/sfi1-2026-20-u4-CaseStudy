@@ -25,7 +25,7 @@ const MicrobitASCIIAdapter = require("./adapters/MicrobitASCIIAdapter"); //El ha
 // const MicrobitBinaryAdapter = require("./adapters/MicrobitBinaryAdapter");
 const Microbit2ASCIIAdapter = require("./adapters/Microbit2ASCIIAdapter"); 
 const MicrobitBinaryAdapter = require ("./adapters/MicrobitBinaryAdapter.js"); //El hardware con protocolo binario.
-const StrudelAdapter = require ("./adapters/StrudelAdapter"); //El adapter para conectar con Strudel.
+//const StrudelAdapter = require ("./adapters/StrudelAdapter"); //El adapter para conectar con Strudel.
 const OSCAdapter = require ("./adapters/OSCAdapter");
 const log = {
   info: (...args) => console.log(`[${new Date().toISOString()}] [INFO]`, ...args),
@@ -168,12 +168,12 @@ async function main() {
   adapters.push(hardwareAdapter);
 
   // STRUDEL
-  adapters.push(
-    new StrudelAdapter({
-      url: "ws://localhost:8080",
-      verbose: VERBOSE
-    })
-  );
+  //adapters.push(
+  //   new StrudelAdapter({
+  //    url: "ws://localhost:8080",
+  //    verbose: VERBOSE
+  //  })
+  //);
 
   // OSC
   adapters.push(
