@@ -11,7 +11,7 @@ KEY_RELEASED: "KEY_RELEASED",
 
 //Se crea una máquina de estados, o sea que el programa tiene estados y cambia entre ellos
 class PainterTask extends FSMTask {
-    constructor() { //Llama al constructor de la clase padre FSMTask
+        constructor() { //Llama al constructor de la clase padre FSMTask
         super();
 
         //Variables para dibujar con microbit
@@ -76,23 +76,28 @@ class PainterTask extends FSMTask {
     };
 
     updateLogic(data) { //Aquí se actualizan posiciones y botones 
-        this.rxData.ready = true;
 
-        this.rxData.x = map(data.x, -2048, 2047, 0, width);
-        this.rxData.y = map(data.y, -2048, 2047, 0, height);
+      this.rxData.ready = true;
 
-        if(this.rxData.btnA && !this.rxData.prevA) {
-            this.lineSize = random(50, 160);
-            this.clickPosX = this.rxData.x;
-            this.clickPosY = this.rxData.y;
-        }
+      this.rxData.x = map(data.x, -2048, 2047, 0, width);
+      this.rxData.y = map(data.y, -2048, 2047, 0, height);
 
-        if(!this.rxData.btnB && this.rxData.prevB) {
-            this.c = color(random(255), random(255), random(80, 100));
-        }
+      this.rxData.btnA = data.btnA;
+      this.rxData.btnB = data.btnB;
 
-        this.rxData.prevA = this.rxData.btnA;
-        this.rxData.prevB = this.rxData.btnB;
+      if(!this.rxData.btnA && !this.rxData.prevA) {
+
+        this.lineSize = random(50, 160);
+
+        this.c = color(
+            random(255),
+            random(255),
+            random(80, 100)
+        );
+      }
+
+      this.rxData.prevA = this.rxData.btnA;
+      this.rxData.prevB = this.rxData.btnB;
     }
 
     handleStrudel(data) { //Es donde se reciben los eventos musicales
@@ -148,7 +153,8 @@ class PainterTask extends FSMTask {
         }
     }
 
-    processStrudel() {//Donde se ejecuta cada frame
+    processStrudel() {
+        //Donde se ejecuta cada frame
         if(!this.eventQueue || this.eventQueue.length === 0) return; //Si no hay eventos, sale rápido
 
         let now = Date.now() + this.LATENCY_CORRECTION; //Tiempo actual
@@ -158,21 +164,47 @@ class PainterTask extends FSMTask {
             now >= this.eventQueue[0].timestamp
         ) {
             let ev = this.eventQueue.shift(); //Sacar eventos
+            if(!ev.sound) continue;
 
             //Crear animaciones, esto es lo que luego se dibuja
             this.activeAnimations.push({
                 startTime: now,
-                duration: ev.delta * 2000, 
+                duration: ev.delta * 2000,
                 type: ev.sound,
                 x: random(width * 0.2, width * 0.8),
                 y: random(height * 0.2, height * 0.8),
                 color: getColorForSound(ev.sound)
             });
 
-            console.log("Animación creada:", this.activeAnimations.length);
+            if(
+                ev.sound === "tr909bd" &&
+                this.rxData.btnA &&
+                this.oscControls.rainbowMode
+            ){
+                for(let i = 0; i < 80; i++){
+
+                    this.activeAnimations.push({
+                        startTime: now,
+                        duration: random(400, 1200),
+                        type: "explosion",
+                        x: random(width),
+                        y: random(height),
+                        color: [
+                            random(255),
+                            random(255),
+                            random(255),
+                        ]
+                    });
+                }
+            }
+
         }
+     
     }
 }
+                
+
+            
 
 // SKETCH
 let painter;
@@ -180,11 +212,19 @@ let bridge; //Strudel, microbit y OSC.
 let connectBtn; 
 const renderer = new Map();
 
+let particles = [];
+
 function setup() {
     createCanvas(windowWidth, windowHeight);
     background(255);
 
     rectMode(CENTER);
+
+    background(0);
+
+    for(let i = 0; i < 1000; i++) {
+        particles.push(new Particle());
+    }
 
     painter = new PainterTask();
 
@@ -269,42 +309,58 @@ function draw() { //Actualiza el estado y dibuja en cada estado
 }
 
 function drawRunning() {
-    background(0, 30); //Fondo semistransparente 
+    background(0, 18); //Fondo semistransparente 
 
     painter.processStrudel(); //Procesar eventos
 
-    let now = Date.now();
+    //OSC rainbow mode
+    if(painter.oscControls.rainbowMode) {
 
-    if(painter.oscControls.rainbowMode){
         colorMode(HSB);
 
         let hue = (frameCount * 2) % 255;
 
-        background(hue, 150, 80, 0.1);
+        background(hue, 120, 30, 0.05);
 
         colorMode(RGB);
     }
 
-    for(let i = painter.activeAnimations.length - 1; i >= 0; i--) { //Loop de animaciones
+    //Partículas
+    for(let p of particles){
+
+        p.update();
+        p.draw();
+    }
+
+    //Visuales de Strudel
+    let now = Date.now();
+
+    for(let i = painter.activeAnimations.length - 1; i >= 0; i--) {
+
         let anim = painter.activeAnimations[i];
 
         let elapsed = now - anim.startTime;
+
         let progress = elapsed / anim.duration;
 
-        if(progress <= 1.0) { //Dibujar o eliminar animación 
+        if(progress <= 1.0) {
+
             dibujarElemento(anim, progress);
         } else {
+
             painter.activeAnimations.splice(i, 1);
         }
     }
 }
+
 
 // VISUALES
 const visualMap = {//Se asocian sonidos a funciones
     'tr909bd': dibujarBombo,
     'tr909sd': dibujarCaja,
     'tr909hh': dibujarHat,
-    'tr909oh': dibujarHat
+    'tr909oh': dibujarHat,
+    'explosion': dibujarExplosion
 };
 
 function dibujarElemento(anim, p){
@@ -353,6 +409,34 @@ function dibujarDefault(anim, p, c) {
     line(0, -size, 0, size);
 }
 
+function dibujarExplosion(anim, p, c){
+
+    let size = lerp(10, 200, p);
+    let alpha = lerp(255, 0, p);
+
+    noFill();
+
+    stroke(c[0], c[1], c[2], alpha);
+
+    strokeWeight(2);
+
+    circle(anim.x, anim.y, size);
+
+    line(
+        anim.x - size * 0.5,
+        anim.y,
+        anim.x + size * 0.5,
+        anim.y
+    );
+
+    line(
+        anim.x,
+        anim.y - size * 0.5,
+        anim.x,
+        anim.y + size * 0.5
+    );
+}
+
 function getColorForSound(s) {
     const colors = {
         'tr909bd': painter.oscControls.rgb,
@@ -373,4 +457,110 @@ function getColorForSound(s) {
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
+
+}
+
+class Particle {
+
+    constructor(){
+        this.pos = createVector(
+            random(width),
+            random(height)
+        );
+
+        this.prev = this.pos.copy();
+
+        this.vel = createVector();
+
+        this.speed = random(1, 4);
+
+        this.alpha = random(20, 80);
+    }
+
+    update(){
+        this.prev = this.pos.copy();
+
+        //Microbit controla el flow field
+        let noiseScale = map(
+            painter.rxData.x, 
+            0,
+            width,
+            0.001,
+            0.1
+        );
+
+        let angleOffset = map(
+            painter.rxData.y,
+            0,
+            height,
+            -PI,
+            PI
+        );
+
+        let angle = noise(
+            this.pos.x * noiseScale,
+            this.pos.y * noiseScale,
+            frameCount * 0.003
+        ) * TWO_PI * 6;
+
+        angle += angleOffset;
+
+        this.vel.x = cos(angle);
+        this.vel.y = sin(angle);
+
+        this.pos.add(
+            this.vel.copy().mult(this.speed)
+        );
+
+      //Wrap screen
+      if(this.pos.x > width) {
+        this.pos.x = 0;
+        this.prev = this.pos.copy();
+      }
+
+      if(this.pos.x < 0) {
+        this.pos.x = width;
+        this.prev = this.pos.copy();        
+      }
+
+      if(this.pos.y > height) {
+        this.pos.y = 0;
+        this.prev = this.pos.copy();
+      }
+
+      if(this.pos.y < 0) {
+        this.pos.y = height;
+        this.prev = this.pos.copy();
+      }
+
+      //Botón A: Explosión
+      if(painter.rxData.btnA) {
+
+        this.pos.add(
+            p5.Vector.random2D().mult(10)
+        );
+      }
+    }
+
+    draw() {
+         let c= painter.oscControls.rgb;
+
+         stroke(
+            c[0],
+            c[1],
+            c[2],
+            this.alpha
+         );
+
+      strokeWeight(
+        painter.oscControls.sizeMultiplier
+      );
+
+      line(
+        this.prev.x,
+        this.prev.y,
+        this.pos.x,
+        this.pos.y
+      );
+    }
 }
