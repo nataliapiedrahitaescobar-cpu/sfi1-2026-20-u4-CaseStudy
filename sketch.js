@@ -374,7 +374,7 @@ function drawRunning() {
     );
     painter.cameraShake *= 0.9;
 
-    background(0, 2); //Fondo semistransparente 
+    background(0, 25); //Fondo semistransparente 
 
     //Agrega capas visuales de glow psicodélico, ondas, distorsión audiovisual y efecto reactivo encima del canvas
     shaderLayer.shader(glowShader);
@@ -391,19 +391,28 @@ function drawRunning() {
 
     shaderLayer.noStroke();
 
-    shaderLayer.rect(
-       -width / 2,
-       -height / 2,
-       width,
-       height
+    shaderLayer.push();
+
+    shaderLayer.translate(
+        -width / 2,
+        -height / 2
     );
+
+    shaderLayer.rect(
+        0,
+        0,
+        width,
+        height
+    );
+
+    shaderLayer.pop();
 
     image(shaderLayer, 0, 0);
 
     painter.processStrudel(); //Procesar eventos
 
     //Simular eventos musicales automáticamente
-    if(frameCount % 20 === 0){
+    if(frameCount % 60 === 0){
 
     painter.activeAnimations.push({
         startTime: Date.now(),
@@ -415,7 +424,7 @@ function drawRunning() {
     });
 }
 
-if(frameCount % 35 === 0){
+if(frameCount % 90 === 0){
 
     painter.activeAnimations.push({
         startTime: Date.now(),
@@ -427,7 +436,7 @@ if(frameCount % 35 === 0){
     });
 }
 
-if(frameCount % 10 === 0){
+if(frameCount % 30 === 0){
 
     painter.activeAnimations.push({
         startTime: Date.now(),
