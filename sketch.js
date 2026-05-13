@@ -20,6 +20,9 @@ class PainterTask extends FSMTask {
         this.angle = 0;
         this.clickPosX = 0;
         this.clickPosY = 0;
+
+        this.cameraShake = 0;
+
         //Estados de datos del microbit, guarda posición, botones y el estados anterior para detectar los cambios
         this.rxData  = {
             x: 0,
@@ -176,6 +179,10 @@ class PainterTask extends FSMTask {
                 color: getColorForSound(ev.sound)
             });
 
+            if(ev.sound === "tr909bd"){
+                this.cameraShake = 20;
+            }
+
             if(
                 ev.sound === "tr909bd" &&
                 this.rxData.btnA &&
@@ -210,12 +217,60 @@ class PainterTask extends FSMTask {
 let painter;
 let bridge; //Strudel, microbit y OSC.
 let connectBtn; 
+let shaderLayer;
+let glowShader;
+
 const renderer = new Map();
 
 let particles = [];
 
+const vertShader = `
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1.0);
+}
+`;
+
+const fragShader = `
+precision mediump float;
+
+uniform vec2 u_resolution;
+uniform float u_time;
+
+void main() {
+
+    vec2 st = gl_FragCoord.xy / u_resolution;
+
+    float wave =
+        sin(st.x * 10.0 + u_time * 2.0) *
+        cos(st.y * 10.0 + u_time * 2.0);
+
+    float glow = abs(wave);
+
+    vec3 color = vec3(
+        0.1 + glow * 0.8,
+        0.2 + glow * 0.3,
+        0.5 + glow
+    );
+
+    gl_FragColor = vec4(color, 0.08);
+}
+`;
+
 function setup() {
     createCanvas(windowWidth, windowHeight);
+    shaderLayer = createGraphics(
+        windowWidth,
+        windowHeight,
+        WEBGL
+    );
+
+    glowShader = shaderLayer.createShader(
+        vertexShader,
+        fragShader
+    );
+
     background(255);
 
     rectMode(CENTER);
@@ -309,7 +364,41 @@ function draw() { //Actualiza el estado y dibuja en cada estado
 }
 
 function drawRunning() {
-    background(0, 18); //Fondo semistransparente 
+
+    //Agrega pequeñas vibraciones sincronizadas con el kick
+    push();
+
+    translate(
+        random(-painter.cameraShake, painter.cameraShake),
+        random(-painter-cameraShake, painter.cameraShake)
+    );
+    painter.cameraShake *= 0.9;
+
+    background(0, 2); //Fondo semistransparente 
+
+    //Agrega capas visuales de glow psicodélico, ondas, distorsión audiovisual y efecto reactivo encima del canvas
+    shaderLayer.shader(glowShader);
+
+    glowShader.setUniform(
+        "u_resolution",
+        [width, height]
+    );
+
+    glowShader.setUniform(
+        "u_time",
+        millis() * 0.001
+    );
+
+    shaderLayer.noStroke();
+
+    shaderLayer.rect(
+        0,
+        0,
+        width,
+        height
+    );
+
+    image(shaderLayer, 0, 0);
 
     painter.processStrudel(); //Procesar eventos
 
@@ -358,8 +447,8 @@ function drawRunning() {
 const visualMap = {//Se asocian sonidos a funciones
     'tr909bd': dibujarBombo,
     'tr909sd': dibujarCaja,
-    'tr909hh': dibujarHat,
-    'tr909oh': dibujarHat,
+    'tr909hh': dibujarHiHat,
+    'tr909oh': dibujarOpenHat,
     'explosion': dibujarExplosion
 };
 
@@ -372,25 +461,101 @@ function dibujarElemento(anim, p){
 
 //Funciones de dibujo
 function dibujarBombo(anim, p, c) {
-    let d = lerp(100,600* painter.oscControls.sizeMultiplier,p);
-    let alpha = lerp(255, 0, p);
+  let d = lerp(100, 700, p);
+  let alpha = lerp(255, 0, p);
+
+  noStroke();
+
+  //Glow
+  for(let i = 0; i < 6; i++){
+     fill(c[0], c[1], c[2], alpha);
+
+     circle(
+        width / 2,
+        height / 2,
+        d + i * 40
+      );
+    }
+
+    //Core
     fill(c[0], c[1], c[2], alpha);
-    noStroke();
-    circle(width / 2, height / 2, d);
+
+    circle(
+        width / 2,
+        height / 2,
+        d
+    );
 }
 
+
+
+//Flash industrial más musical
 function dibujarCaja(anim, p, c) {
-    let w = lerp(width, 0, p);
-    fill(c[0], c[1], c[2]);
-    noStroke();
-    rect(width / 2, height / 2, w, 50);
+ let w = lerp(width, 0, p);
+ let alpha = lerp(255, 0, p);
+
+ noFill();
+
+ stroke(c[1], c[2], c[3], alpha);
+
+ strokeWeight(4);
+
+ rect(
+    width / 2,
+    height / 2,
+    w,
+    100
+ );
+
+ rect(
+    width / 2,
+    height / 2,
+    w * 0.5,
+    50
+ );
 }
 
-function dibujarHat(anim, p , c){
-    let sz = lerp(40, 0, p);
-    fill(c[0], c[1], c[2]);
-    noStroke();
-    rect(anim.x, anim.y, sz, sz);
+function dibujarHiHat(anim, p, c){
+    let size = lerp(5, 80, p);
+    let alpha = lerp(255, 0, p);
+
+    noFill();
+
+    stroke(c[0], c[1], c[2], alpha);
+
+    strokeWeight(1);
+
+    for(let i = 0; i < 5; i++){
+        circle(
+            anim.x,
+            anim.y,
+            size + i * 10
+        );
+    }
+}
+
+function dibujarOpenHat(anim, p, c){
+    let len = lerp(200, 0, p);
+    let alpha = lerp(255, 0, p);
+
+    stroke(c[0], c[1], c[2], alpha);
+
+    strokeWeight(2);
+
+    push();
+
+    translate(anim.x, anim.y);
+
+    rotate(p * TWO_PI);
+
+    for(let i = 0; a < TWO_PI; a += PI/6){
+        let x = cos(a) * len;
+        let y = sin(a) * len;
+
+        line(0, 0, x, y);
+    }
+
+    pop();
 }
 
 function dibujarDefault(anim, p, c) {
@@ -411,8 +576,9 @@ function dibujarDefault(anim, p, c) {
 
 function dibujarExplosion(anim, p, c){
 
-    let size = lerp(10, 200, p);
+    let size = lerp(10, 300, p);
     let alpha = lerp(255, 0, p);
+    let rays = 12;
 
     noFill();
 
@@ -420,21 +586,28 @@ function dibujarExplosion(anim, p, c){
 
     strokeWeight(2);
 
+    //Círculo principal
     circle(anim.x, anim.y, size);
 
-    line(
-        anim.x - size * 0.5,
-        anim.y,
-        anim.x + size * 0.5,
-        anim.y
-    );
+    //Rayos
+    for(let i = 0; i < rays; i++) {
 
-    line(
-        anim.x,
-        anim.y - size * 0.5,
-        anim.x,
-        anim.y + size * 0.5
-    );
+        let angle = map(i, 0, rays, 0, TWO_PI);
+
+        let x1 = anim.x + cos(angle) * size * 0.2;
+        let y1 = anim.y + sin(angle) * size * 0.2;
+
+        let x2 = anim.x + cos(angle) * size;
+        let y2 = anim.y + sin(angle) * size;
+
+        line(x1, y1, x2, y2);
+    }
+
+    //Segundo anillo
+    strokeWeight(1);
+
+    circle(anim.x, anim.y, size * 6);
+
 }
 
 function getColorForSound(s) {
