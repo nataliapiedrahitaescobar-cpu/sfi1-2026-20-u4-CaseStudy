@@ -186,33 +186,43 @@ class PainterTask extends FSMTask {
     // ============================================
 
     handleStrudel(data) {
-
-        if (!data.payload) return;
+        if(!data.payload) return;
 
         let params = data.payload;
 
-        if (!this.synced) {
-
+        //Sincronización inicial
+        if(!this.synced) {
             this.timeOffset =
-                Date.now() - data.timestamp;
-
-            this.synced = true;
-
+            Date.now() - data.timestamp;
+            this.synced = true
             console.log("SYNC OK");
         }
 
+        //Limpar nombre del sonido
+        let soundName = params.s || "";
+
+        soundName = soundName
+        .toLowerCase()
+        .replace("tr909:", "")
+        .replace("tr909", "")
+        .replace("/:.*/", "")
+        .trim();
+
+        console.log("SONIDO LIMPIO:", soundName);
+
+        //Agregar Evento
         this.eventQueue.push({
+            timestamp: 
+            data.timestamp +
+            this.timeOffset,
 
-            timestamp:
-                data.timestamp +
-                this.timeOffset,
+            sound: soundName,
 
-            sound: params.s,
-
-            delta:
-                params.delta || 0.25
+            delta: 
+            params.delta || 0.25
         });
 
+        //Ordenar eventos por tiempo
         this.eventQueue.sort(
             (a, b) =>
                 a.timestamp - b.timestamp
