@@ -289,6 +289,8 @@ class PainterTask extends FSMTask {
             let ev =
                 this.eventQueue.shift();
 
+             console.log("SONIDO;", ev.sound);
+
             if (!ev.sound) continue;
 
             this.activeAnimations.push({
@@ -654,14 +656,26 @@ function drawRunning() {
 
 const visualMap = {
 
+    // Kick
     "tr909bd": dibujarBombo,
+    "bd": dibujarBombo,
+    "kick": dibujarBombo,
 
+    // Snare
     "tr909sd": dibujarCaja,
+    "sd": dibujarCaja,
+    "snare": dibujarCaja,
 
+    // HiHat
     "tr909hh": dibujarHiHat,
+    "hh": dibujarHiHat,
+    "hat": dibujarHiHat,
 
+    // Open Hat
     "tr909oh": dibujarOpenHat,
+    "oh": dibujarOpenHat,
 
+    // Explosion
     "explosion": dibujarExplosion
 };
 
@@ -673,13 +687,16 @@ function dibujarElemento(anim, p) {
 
     push();
 
-    let fn =
-        visualMap[anim.type] ||
-        dibujarDefault;
+    let sound = anim.type.toLowerCase();
 
+    let fn =
+    visualMap[sound] ||
+    dibujarDefault;
+    
     fn(anim, p, anim.color);
 
     pop();
+    
 }
 
 // ============================================
