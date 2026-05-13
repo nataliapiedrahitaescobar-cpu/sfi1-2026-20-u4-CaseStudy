@@ -224,7 +224,7 @@ const renderer = new Map();
 
 let particles = [];
 
-const vertShader = `
+const vertexShader = `
 attribute vec3 aPosition;
 
 void main() {
@@ -370,7 +370,7 @@ function drawRunning() {
 
     translate(
         random(-painter.cameraShake, painter.cameraShake),
-        random(-painter-cameraShake, painter.cameraShake)
+        random(-painter.cameraShake, painter.cameraShake)
     );
     painter.cameraShake *= 0.9;
 
@@ -392,10 +392,10 @@ function drawRunning() {
     shaderLayer.noStroke();
 
     shaderLayer.rect(
-        0,
-        0,
-        width,
-        height
+       -width / 2,
+       -height / 2,
+       width,
+       height
     );
 
     image(shaderLayer, 0, 0);
@@ -440,6 +440,8 @@ function drawRunning() {
             painter.activeAnimations.splice(i, 1);
         }
     }
+
+    pop();
 }
 
 
@@ -468,7 +470,7 @@ function dibujarBombo(anim, p, c) {
 
   //Glow
   for(let i = 0; i < 6; i++){
-     fill(c[0], c[1], c[2], alpha);
+     fill(c[0], c[1], c[2], alpha * 0.15);
 
      circle(
         width / 2,
@@ -496,7 +498,7 @@ function dibujarCaja(anim, p, c) {
 
  noFill();
 
- stroke(c[1], c[2], c[3], alpha);
+ stroke(c[0], c[1], c[2], alpha);
 
  strokeWeight(4);
 
@@ -548,7 +550,7 @@ function dibujarOpenHat(anim, p, c){
 
     rotate(p * TWO_PI);
 
-    for(let i = 0; a < TWO_PI; a += PI/6){
+    for(let a = 0; a < TWO_PI; a += PI/6){
         let x = cos(a) * len;
         let y = sin(a) * len;
 
@@ -629,7 +631,21 @@ function getColorForSound(s) {
 }
 
 function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
+    resizeCanvas(
+        windowWidth,
+        windowHeight
+    );
+
+    shaderLayer = createGraphics(
+        windowWidth,
+        windowHeight,
+        WEBGL
+    );
+
+    glowShader = shaderLayer.createShader(
+        vertexShader,
+        fragShader
+    );
 
 }
 
