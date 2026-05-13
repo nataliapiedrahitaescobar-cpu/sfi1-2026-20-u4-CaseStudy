@@ -73,6 +73,11 @@ class MicrobitBinaryAdapter extends BaseAdapter {
 
     //Tomar el paquete completo de 8 bytes
     const packet = this.buf.slice(0,8); 
+    if(this.verbose){
+      console.log("PACKET:", packet);
+    }
+
+
 
     //Calcular el checksum
     let sum = 0;

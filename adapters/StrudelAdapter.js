@@ -39,8 +39,8 @@ class StrudelAdapter extends BaseAdapter {
                     return i >= 0 ? args[i + 1] : null;
                 };
 
-                const s = getArg("s");
-                const delta = getArg("delta");
+                const s = getArg(("s") || "");
+                const delta = Number(getArg("delta") || 0.25);
 
                 this.onData?.({
                     type: "strudel",

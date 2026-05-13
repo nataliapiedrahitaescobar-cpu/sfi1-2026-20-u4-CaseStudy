@@ -35,7 +35,11 @@ class OSCAdapter extends BaseAdapter {
                     type: "osc", //Identifica el origen
                     payload: {
                         address: msg.address, //Especifica qué control fue usado
-                        args: msg.args || [] //Valores del control
+                        args: (msg.args || []).map(a =>
+                            typeof a === "object" && "value" in a
+                            ? a.value
+                            : a
+                        ) //Valores del control
                     }
                  };
 
