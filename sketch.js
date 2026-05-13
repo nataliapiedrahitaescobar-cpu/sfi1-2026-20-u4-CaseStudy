@@ -402,6 +402,43 @@ function drawRunning() {
 
     painter.processStrudel(); //Procesar eventos
 
+    //Simular eventos musicales automáticamente
+    if(frameCount % 20 === 0){
+
+    painter.activeAnimations.push({
+        startTime: Date.now(),
+        duration: 800,
+        type: "tr909bd",
+        x: random(width),
+        y: random(height),
+        color: [255,0,80]
+    });
+}
+
+if(frameCount % 35 === 0){
+
+    painter.activeAnimations.push({
+        startTime: Date.now(),
+        duration: 500,
+        type: "tr909sd",
+        x: random(width),
+        y: random(height),
+        color: [0,200,255]
+    });
+}
+
+if(frameCount % 10 === 0){
+
+    painter.activeAnimations.push({
+        startTime: Date.now(),
+        duration: 300,
+        type: "tr909hh",
+        x: random(width),
+        y: random(height),
+        color: [255,255,0]
+    });
+}
+
     //OSC rainbow mode
     if(painter.oscControls.rainbowMode) {
 
