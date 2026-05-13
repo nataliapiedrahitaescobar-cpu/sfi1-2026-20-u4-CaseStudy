@@ -404,7 +404,7 @@ function setup() {
 
     for (
         let i = 0;
-        i < 800;
+        i < 70;
         i++
     ) {
 
@@ -563,7 +563,7 @@ function drawRunning() {
 
     // BACKGROUND FADE
 
-    background(0, 25);
+    background(0, 30);
 
     // ============================================
     // PROCESS STRUDEL
@@ -656,26 +656,31 @@ function drawRunning() {
 
 const visualMap = {
 
-    // Kick
+    // KICK
     "tr909bd": dibujarBombo,
+    "tr909_bd": dibujarBombo,
     "bd": dibujarBombo,
     "kick": dibujarBombo,
 
-    // Snare
+    // SNARE / CLAP
     "tr909sd": dibujarCaja,
+    "tr909_sd": dibujarCaja,
     "sd": dibujarCaja,
+    "cp": dibujarCaja,
     "snare": dibujarCaja,
 
-    // HiHat
+    // HI HAT
     "tr909hh": dibujarHiHat,
+    "tr909_hh": dibujarHiHat,
     "hh": dibujarHiHat,
     "hat": dibujarHiHat,
 
-    // Open Hat
+    // OPEN HAT
     "tr909oh": dibujarOpenHat,
+    "tr909_oh": dibujarOpenHat,
     "oh": dibujarOpenHat,
 
-    // Explosion
+    // EXPLOSION
     "explosion": dibujarExplosion
 };
 
@@ -687,16 +692,22 @@ function dibujarElemento(anim, p) {
 
     push();
 
-    let sound = anim.type.toLowerCase();
+    let sound =
+        String(anim.type)
+        .toLowerCase()
+        .trim();
+
+    // LIMPIEZA EXTRA
+    sound = sound.replace(":", "");
+    sound = sound.replace(/\s/g, "");
 
     let fn =
-    visualMap[sound] ||
-    dibujarDefault;
-    
+        visualMap[sound] ||
+        dibujarDefault;
+
     fn(anim, p, anim.color);
 
     pop();
-    
 }
 
 // ============================================
@@ -725,7 +736,7 @@ function dibujarBombo(anim, p, c) {
             c[0],
             c[1],
             c[2],
-            alpha * 0.1
+            alpha * 0.35
         );
 
         circle(
@@ -775,7 +786,7 @@ function dibujarCaja(anim, p, c) {
         alpha
     );
 
-    strokeWeight(4);
+    strokeWeight(10);
 
     rect(
         width / 2,
@@ -813,7 +824,7 @@ function dibujarHiHat(anim, p, c) {
         alpha
     );
 
-    strokeWeight(1);
+    strokeWeight(4);
 
     for (
         let i = 0;
@@ -848,7 +859,7 @@ function dibujarOpenHat(anim, p, c) {
         alpha
     );
 
-    strokeWeight(2);
+    strokeWeight(5);
 
     push();
 
