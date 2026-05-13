@@ -481,41 +481,90 @@ function setup() {
 
     bridge.onData((data) => {
 
-        // STRUDEL
+    console.log("DATA RECIBIDA:", data);
 
-        if (
-            data.type === "strudel"
-        ) {
+    // =========================
+    // STRUDEL
+    // =========================
 
-            painter.handleStrudel(
-                data
-            );
+    if (data.type === "strudel") {
+
+        let sound = null;
+
+        // Buscar sonido en distintas formas
+
+        if (data.payload?.s) {
+
+            sound = data.payload.s;
         }
 
-        // OSC
+        else if (data.payload?.sound) {
 
-        else if (
-            data.type === "osc"
-        ) {
-
-            painter.handleOSC(data);
+            sound = data.payload.sound;
         }
 
-        // MICROBIT
+        else if (data.s) {
 
-        else if (
-            data.type === "microbit"
-        ) {
+            sound = data.s;
+        }
 
-            painter.postEvent({
+        console.log("SONIDO FINAL:", sound);
 
-                type: EVENTS.DATA,
+        if (sound) {
 
-                payload: data
+            painter.activeAnimations.push({
+
+                startTime: Date.now(),
+
+                duration: 900,
+
+                type: sound.toLowerCase(),
+
+                x: random(width),
+
+                y: random(height),
+
+                color: getColorForSound(sound)
             });
-        }
-    });
 
+            // SHAKE KICK
+
+            if (
+                sound.includes("bd")
+            ) {
+
+                painter.cameraShake = 25;
+            }
+        }
+    }
+
+    // =========================
+    // OSC
+    // =========================
+
+    else if (
+        data.type === "osc"
+    ) {
+
+        painter.handleOSC(data);
+    }
+
+    // =========================
+    // MICROBIT
+    // =========================
+
+    else if (
+        data.type === "microbit"
+    ) {
+
+        painter.postEvent({
+
+            type: EVENTS.DATA,
+
+            payload: data
+        });
+    }
+});
     // BOTÓN
 
     connectBtn.mousePressed(() => {
