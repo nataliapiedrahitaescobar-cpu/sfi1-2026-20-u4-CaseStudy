@@ -163,6 +163,10 @@ async function main() {
 
   const adapters = [];
 
+  //Microbit-Sim
+  const hardwareAdapter = await createAdapter();
+  adapters.push(hardwareAdapter);
+
   // STRUDEL
   adapters.push(
     new StrudelAdapter({
