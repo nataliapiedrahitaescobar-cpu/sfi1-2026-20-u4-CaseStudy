@@ -184,50 +184,53 @@ class PainterTask extends FSMTask {
     // ============================================
     // STRUDEL
     // ============================================
-
+        
     handleStrudel(data) {
-        if(!data.payload) return;
 
-        let params = data.payload;
+        console.log("DATA STRUDEL:", data);
 
-        //Sincronización inicial
-        if(!this.synced) {
-            this.timeOffset =
-            Date.now() - data.timestamp;
-            this.synced = true
-            console.log("SYNC OK");
+        if(!data) return;
+
+        let sound = null;
+
+        //Caso Normal
+        if(data.payload && data.payload.s){
+            
+            sound = data.payload.s;
         }
 
-        //Limpar nombre del sonido
-        let soundName = params.s || "";
+        //Caso alterno
+        else if(data.s) {
 
-        soundName = soundName
-        .toLowerCase()
-        .replace("tr909:", "")
-        .replace("tr909", "")
-        .replace("/:.*/", "")
-        .trim();
+            sound = data.s;
+        }
 
-        console.log("SONIDO LIMPIO:", soundName);
+        //Si no hay sonido, salir
+        if(!sound) {
+            console.log("NO SOUND");
+            return;
+        }
 
-        //Agregar Evento
-        this.eventQueue.push({
-            timestamp: 
-            data.timestamp +
-            this.timeOffset,
+        console.log("SONIDO RECIBIDO", sound);
 
-            sound: soundName,
+        this.activeAnimations.push({
 
-            delta: 
-            params.delta || 0.25
+            startTime: Date.now,
+            duration: 700,
+            type: sound.toLowerCase(),
+            x: random(width),
+            y: random(height),
+            color: getColorForSound(sound)
         });
 
-        //Ordenar eventos por tiempo
-        this.eventQueue.sort(
-            (a, b) =>
-                a.timestamp - b.timestamp
-        );
+        //Shake kick
+        if(
+            sound.includes("bd")
+        ){
+            this.cameraShake = 20;
+        }
     }
+
 
     // ============================================
     // OSC
