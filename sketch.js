@@ -1,6 +1,7 @@
-//Maneja la conexión con el microbit y Strudel
+// ============================================
+// EVENTOS
+// ============================================
 
-//Definición de los eventos
 const EVENTS = {
     CONNECT: "CONNECT",
     DISCONNECT: "DISCONNECT",
@@ -9,9 +10,9 @@ const EVENTS = {
     KEY_RELEASED: "KEY_RELEASED",
 };
 
-// ========================================
-// FSM
-// ========================================
+// ============================================
+// FSM TASK
+// ============================================
 
 class PainterTask extends FSMTask {
 
@@ -19,13 +20,17 @@ class PainterTask extends FSMTask {
 
         super();
 
-        // Variables visuales
         this.c = color(181, 157, 0);
+
         this.lineSize = 100;
+
+        this.angle = 0;
+
+        this.clickPosX = 0;
+        this.clickPosY = 0;
 
         this.cameraShake = 0;
 
-        // Estado microbit
         this.rxData = {
             x: 0,
             y: 0,
@@ -36,9 +41,10 @@ class PainterTask extends FSMTask {
             ready: false,
         };
 
-        // Strudel
+        // STRUDEL
         this.eventQueue = [];
         this.activeAnimations = [];
+
         this.LATENCY_CORRECTION = 0;
 
         // OSC
@@ -51,11 +57,16 @@ class PainterTask extends FSMTask {
         this.transitionTo(this.estado_esperando);
     }
 
+    // ============================================
+    // ESTADOS
+    // ============================================
+
     estado_esperando = (ev) => {
 
         if (ev.type === "ENTRY") {
 
             cursor();
+
             console.log("Waiting for connection...");
         }
 
@@ -71,13 +82,9 @@ class PainterTask extends FSMTask {
 
             noCursor();
 
-            strokeWeight(0.75);
-
             background(0);
 
-            console.log(
-                "Sistema listo (microbit + strudel)"
-            );
+            console.log("Sistema listo");
         }
 
         else if (ev.type === EVENTS.DISCONNECT) {
@@ -95,6 +102,10 @@ class PainterTask extends FSMTask {
             cursor();
         }
     };
+
+    // ============================================
+    // MICROBIT
+    // ============================================
 
     updateLogic(data) {
 
@@ -119,10 +130,7 @@ class PainterTask extends FSMTask {
         this.rxData.btnA = data.btnA;
         this.rxData.btnB = data.btnB;
 
-        if (
-            !this.rxData.btnA &&
-            !this.rxData.prevA
-        ) {
+        if (!this.rxData.btnA && !this.rxData.prevA) {
 
             this.lineSize = random(50, 160);
 
@@ -137,13 +145,16 @@ class PainterTask extends FSMTask {
         this.rxData.prevB = this.rxData.btnB;
     }
 
+    // ============================================
+    // STRUDEL
+    // ============================================
+
     handleStrudel(data) {
 
         if (!data.payload) return;
 
         let params = data.payload;
 
-        // Sincronización
         if (!this.synced) {
 
             this.timeOffset =
@@ -151,10 +162,7 @@ class PainterTask extends FSMTask {
 
             this.synced = true;
 
-            console.log(
-                "SYNC OK",
-                this.timeOffset
-            );
+            console.log("SYNC OK");
         }
 
         this.eventQueue.push({
@@ -172,6 +180,10 @@ class PainterTask extends FSMTask {
         );
     }
 
+    // ============================================
+    // OSC
+    // ============================================
+
     handleOSC(data) {
 
         if (!data.payload) return;
@@ -180,33 +192,34 @@ class PainterTask extends FSMTask {
 
         const args = data.payload.args || [];
 
-        console.log("OSC:", address, args);
-
-        // RGB
         if (address === "/rgb_1") {
 
             this.oscControls.rgb = [
 
                 Number(args[0] || 0),
+
                 Number(args[1] || 0),
+
                 Number(args[2] || 0),
             ];
         }
 
-        // SIZE
         if (address === "/size") {
 
             this.oscControls.sizeMultiplier =
                 Number(args[0] || 1);
         }
 
-        // RAINBOW
         if (address === "/rainbow") {
 
             this.oscControls.rainbowMode =
                 Boolean(args[0]);
         }
     }
+
+    // ============================================
+    // STRUDEL PROCESS
+    // ============================================
 
     processStrudel() {
 
@@ -216,8 +229,7 @@ class PainterTask extends FSMTask {
         ) return;
 
         let now =
-            Date.now() +
-            this.LATENCY_CORRECTION;
+            Date.now() + this.LATENCY_CORRECTION;
 
         while (
 
@@ -234,7 +246,7 @@ class PainterTask extends FSMTask {
 
                 startTime: now,
 
-                duration: ev.delta * 2000,
+                duration: ev.delta * 1200,
 
                 type: ev.sound,
 
@@ -251,13 +263,15 @@ class PainterTask extends FSMTask {
                 color: getColorForSound(ev.sound)
             });
 
-            // Camera shake
+            // CAMERA SHAKE
+
             if (ev.sound === "tr909bd") {
 
-                this.cameraShake = 20;
+                this.cameraShake = 15;
             }
 
-            // Explosiones
+            // EXPLOSION MODE
+
             if (
 
                 ev.sound === "tr909bd" &&
@@ -272,10 +286,7 @@ class PainterTask extends FSMTask {
 
                         startTime: now,
 
-                        duration: random(
-                            400,
-                            1200
-                        ),
+                        duration: random(300, 900),
 
                         type: "explosion",
 
@@ -286,8 +297,10 @@ class PainterTask extends FSMTask {
                         color: [
 
                             random(255),
+
                             random(255),
-                            random(255),
+
+                            random(255)
                         ]
                     });
                 }
@@ -296,35 +309,35 @@ class PainterTask extends FSMTask {
     }
 }
 
-// ========================================
+// ============================================
 // SKETCH
-// ========================================
+// ============================================
 
 let painter;
+
 let bridge;
+
 let connectBtn;
 
 let shaderLayer;
+
 let glowShader;
 
 const renderer = new Map();
 
 let particles = [];
 
-// ========================================
+// ============================================
 // SHADERS
-// ========================================
+// ============================================
 
 const vertexShader = `
 
 attribute vec3 aPosition;
 
-void main() {
+void main(){
 
-    gl_Position = vec4(
-        aPosition,
-        1.0
-    );
+    gl_Position = vec4(aPosition, 1.0);
 }
 `;
 
@@ -333,47 +346,39 @@ const fragShader = `
 precision mediump float;
 
 uniform vec2 u_resolution;
+
 uniform float u_time;
 
-void main() {
+void main(){
 
     vec2 st =
-        gl_FragCoord.xy /
-        u_resolution;
+        gl_FragCoord.xy / u_resolution;
 
     float wave =
 
-        sin(
-            st.x * 10.0 +
-            u_time * 2.0
-        )
+        sin(st.x * 8.0 + u_time * 1.5) *
 
-        *
-
-        cos(
-            st.y * 10.0 +
-            u_time * 2.0
-        );
+        cos(st.y * 8.0 + u_time * 1.5);
 
     float glow = abs(wave);
 
     vec3 color = vec3(
 
-        0.1 + glow * 0.8,
+        glow * 0.3,
 
-        0.2 + glow * 0.3,
+        glow * 0.1,
 
-        0.5 + glow
+        glow * 0.5
     );
 
     gl_FragColor =
-        vec4(color * 0.25, 0.015);
+        vec4(color, 0.12);
 }
 `;
 
-// ========================================
+// ============================================
 // SETUP
-// ========================================
+// ============================================
 
 function setup() {
 
@@ -382,24 +387,26 @@ function setup() {
         windowHeight
     );
 
+    rectMode(CENTER);
+
+    background(0);
+
+    // SHADER LAYER
+
     shaderLayer = createGraphics(
         windowWidth,
         windowHeight,
         WEBGL
     );
 
-    glowShader =
-        shaderLayer.createShader(
-            vertexShader,
-            fragShader
-        );
+    glowShader = shaderLayer.createShader(
+        vertexShader,
+        fragShader
+    );
 
-    background(0);
+    // PARTICLES
 
-    rectMode(CENTER);
-
-    // Partículas
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 800; i++) {
 
         particles.push(
             new Particle()
@@ -408,28 +415,24 @@ function setup() {
 
     painter = new PainterTask();
 
-    // Bridge
+    // ============================================
+    // BRIDGE
+    // ============================================
+
     bridge = new BridgeClient(
         "ws://127.0.0.1:8081"
     );
 
-    // Botón
-    connectBtn = createButton(
-        "Conectar"
-    );
+    connectBtn =
+        createButton("Conectar");
 
     connectBtn.position(10, 10);
 
-    // Eventos
     bridge.onConnect(() => {
 
-        console.log(
-            "Bridge conectado"
-        );
+        console.log("Bridge conectado");
 
-        connectBtn.html(
-            "Desconectar"
-        );
+        connectBtn.html("Desconectar");
 
         painter.postEvent({
             type: EVENTS.CONNECT
@@ -438,35 +441,27 @@ function setup() {
 
     bridge.onDisconnect(() => {
 
-        console.log(
-            "Bridge desconectado"
-        );
+        console.log("Bridge desconectado");
 
-        connectBtn.html(
-            "Conectar"
-        );
+        connectBtn.html("Conectar");
 
         painter.postEvent({
             type: EVENTS.DISCONNECT
         });
     });
 
-    // Datos
     bridge.onData((data) => {
 
-        // STRUDEL
         if (data.type === "strudel") {
 
             painter.handleStrudel(data);
         }
 
-        // OSC
         else if (data.type === "osc") {
 
             painter.handleOSC(data);
         }
 
-        // MICROBIT
         else if (data.type === "microbit") {
 
             painter.postEvent({
@@ -478,7 +473,6 @@ function setup() {
         }
     });
 
-    // Botón connect
     connectBtn.mousePressed(() => {
 
         if (bridge.isOpen) {
@@ -497,24 +491,29 @@ function setup() {
     );
 }
 
-// ========================================
+// ============================================
 // DRAW
-// ========================================
+// ============================================
 
 function draw() {
 
     painter.update();
 
-    renderer
-        .get(painter.state)
-        ?.();
+    renderer.get(
+        painter.state
+    )?.();
 }
+
+// ============================================
+// DRAW RUNNING
+// ============================================
 
 function drawRunning() {
 
     push();
 
-    // Camera shake
+    // CAMERA SHAKE
+
     translate(
 
         random(
@@ -530,12 +529,13 @@ function drawRunning() {
 
     painter.cameraShake *= 0.9;
 
-    // Fondo fade
-    background(0, 25);
+    // BACKGROUND FADE
 
-    // ========================================
+    background(0, 20);
+
+    // ============================================
     // SHADER
-    // ========================================
+    // ============================================
 
     shaderLayer.clear();
 
@@ -553,33 +553,32 @@ function drawRunning() {
 
     shaderLayer.noStroke();
 
-    shaderLayer.push();
-
-    shaderLayer.translate(
-        -width / 2,
-        -height / 2
-    );
-
     shaderLayer.rect(
-        0,
-        0,
+
+        -width / 2,
+
+        -height / 2,
+
         width,
+
         height
     );
 
-    shaderLayer.pop();
+    tint(255, 80);
 
     image(shaderLayer, 0, 0);
 
-    // ========================================
+    noTint();
+
+    // ============================================
     // STRUDEL
-    // ========================================
+    // ============================================
 
     painter.processStrudel();
 
-    // ========================================
-    // RAINBOW MODE
-    // ========================================
+    // ============================================
+    // OSC MODE
+    // ============================================
 
     if (
         painter.oscControls.rainbowMode
@@ -600,37 +599,27 @@ function drawRunning() {
         colorMode(RGB);
     }
 
-    // ========================================
+    // ============================================
     // PARTICLES
-    // ========================================
+    // ============================================
 
     for (let p of particles) {
 
         p.update();
+
         p.draw();
     }
 
-    // Limitar exceso
-    if (
-        painter.activeAnimations.length > 120
-    ) {
-
-        painter.activeAnimations.splice(
-            0,
-            painter.activeAnimations.length - 120
-        );
-    }
-
-    // ========================================
-    // ANIMATIONS
-    // ========================================
+    // ============================================
+    // VISUALS
+    // ============================================
 
     let now = Date.now();
 
     for (
 
         let i =
-            painter.activeAnimations.length - 1;
+        painter.activeAnimations.length - 1;
 
         i >= 0;
 
@@ -666,9 +655,9 @@ function drawRunning() {
     pop();
 }
 
-// ========================================
-// VISUALES
-// ========================================
+// ============================================
+// VISUAL MAP
+// ============================================
 
 const visualMap = {
 
@@ -683,6 +672,10 @@ const visualMap = {
     "explosion": dibujarExplosion
 };
 
+// ============================================
+// DRAW ELEMENT
+// ============================================
+
 function dibujarElemento(anim, p) {
 
     push();
@@ -696,38 +689,37 @@ function dibujarElemento(anim, p) {
     pop();
 }
 
-// ========================================
-// DIBUJOS
-// ========================================
+// ============================================
+// BOMBO
+// ============================================
 
 function dibujarBombo(anim, p, c) {
 
-    let d =
-        lerp(100, 700, p);
+    let d = lerp(100, 700, p);
 
-    let alpha =
-        lerp(255, 0, p);
+    let alpha = lerp(255, 0, p);
 
     noStroke();
 
-    // Glow
     for (let i = 0; i < 6; i++) {
 
         fill(
             c[0],
             c[1],
             c[2],
-            alpha * 0.15
+            alpha * 0.1
         );
 
         circle(
+
             width / 2,
+
             height / 2,
+
             d + i * 40
         );
     }
 
-    // Core
     fill(
         c[0],
         c[1],
@@ -741,6 +733,10 @@ function dibujarBombo(anim, p, c) {
         d
     );
 }
+
+// ============================================
+// SNARE
+// ============================================
 
 function dibujarCaja(anim, p, c) {
 
@@ -776,6 +772,10 @@ function dibujarCaja(anim, p, c) {
     );
 }
 
+// ============================================
+// HIHAT
+// ============================================
+
 function dibujarHiHat(anim, p, c) {
 
     let size =
@@ -805,6 +805,10 @@ function dibujarHiHat(anim, p, c) {
     }
 }
 
+// ============================================
+// OPEN HAT
+// ============================================
+
 function dibujarOpenHat(anim, p, c) {
 
     let len =
@@ -824,10 +828,7 @@ function dibujarOpenHat(anim, p, c) {
 
     push();
 
-    translate(
-        anim.x,
-        anim.y
-    );
+    translate(anim.x, anim.y);
 
     rotate(p * TWO_PI);
 
@@ -837,17 +838,19 @@ function dibujarOpenHat(anim, p, c) {
         a += PI / 6
     ) {
 
-        let x =
-            cos(a) * len;
+        let x = cos(a) * len;
 
-        let y =
-            sin(a) * len;
+        let y = sin(a) * len;
 
         line(0, 0, x, y);
     }
 
     pop();
 }
+
+// ============================================
+// DEFAULT
+// ============================================
 
 function dibujarDefault(anim, p, c) {
 
@@ -877,21 +880,11 @@ function dibujarDefault(anim, p, c) {
         size,
         size
     );
-
-    line(
-        -size,
-        0,
-        size,
-        0
-    );
-
-    line(
-        0,
-        -size,
-        0,
-        size
-    );
 }
+
+// ============================================
+// EXPLOSION
+// ============================================
 
 function dibujarExplosion(anim, p, c) {
 
@@ -914,36 +907,35 @@ function dibujarExplosion(anim, p, c) {
 
     strokeWeight(2);
 
-    // Círculo
     circle(
         anim.x,
         anim.y,
         size
     );
 
-    // Rayos
-    for (let i = 0; i < rays; i++) {
+    for (
+        let i = 0;
+        i < rays;
+        i++
+    ) {
 
-        let angle =
-            map(
-                i,
-                0,
-                rays,
-                0,
-                TWO_PI
-            );
+        let angle = map(
+            i,
+            0,
+            rays,
+            0,
+            TWO_PI
+        );
 
         let x1 =
             anim.x +
             cos(angle) *
-            size *
-            0.2;
+            size * 0.2;
 
         let y1 =
             anim.y +
             sin(angle) *
-            size *
-            0.2;
+            size * 0.2;
 
         let x2 =
             anim.x +
@@ -959,9 +951,9 @@ function dibujarExplosion(anim, p, c) {
     }
 }
 
-// ========================================
+// ============================================
 // COLORS
-// ========================================
+// ============================================
 
 function getColorForSound(s) {
 
@@ -980,10 +972,7 @@ function getColorForSound(s) {
             [255, 150, 0]
     };
 
-    if (colors[s]) {
-
-        return colors[s];
-    }
+    if (colors[s]) return colors[s];
 
     let charCode =
         s.charCodeAt(0) || 0;
@@ -998,9 +987,9 @@ function getColorForSound(s) {
     ];
 }
 
-// ========================================
+// ============================================
 // RESIZE
-// ========================================
+// ============================================
 
 function windowResized() {
 
@@ -1022,9 +1011,9 @@ function windowResized() {
         );
 }
 
-// ========================================
-// PARTICLES
-// ========================================
+// ============================================
+// PARTICLE
+// ============================================
 
 class Particle {
 
@@ -1058,9 +1047,11 @@ class Particle {
             painter.rxData.x,
 
             0,
+
             width,
 
             0.001,
+
             0.1
         );
 
@@ -1069,26 +1060,23 @@ class Particle {
             painter.rxData.y,
 
             0,
+
             height,
 
             -PI,
+
             PI
         );
 
-        let angle =
+        let angle = noise(
 
-            noise(
+            this.pos.x * noiseScale,
 
-                this.pos.x * noiseScale,
+            this.pos.y * noiseScale,
 
-                this.pos.y * noiseScale,
+            frameCount * 0.003
 
-                frameCount * 0.003
-            )
-
-            *
-
-            TWO_PI * 6;
+        ) * TWO_PI * 6;
 
         angle += angleOffset;
 
@@ -1097,37 +1085,48 @@ class Particle {
         this.vel.y = sin(angle);
 
         this.pos.add(
+
             this.vel
                 .copy()
                 .mult(this.speed)
         );
 
-        // Wrap
+        // WRAP
+
         if (this.pos.x > width) {
 
             this.pos.x = 0;
-            this.prev = this.pos.copy();
+
+            this.prev =
+                this.pos.copy();
         }
 
         if (this.pos.x < 0) {
 
             this.pos.x = width;
-            this.prev = this.pos.copy();
+
+            this.prev =
+                this.pos.copy();
         }
 
         if (this.pos.y > height) {
 
             this.pos.y = 0;
-            this.prev = this.pos.copy();
+
+            this.prev =
+                this.pos.copy();
         }
 
         if (this.pos.y < 0) {
 
             this.pos.y = height;
-            this.prev = this.pos.copy();
+
+            this.prev =
+                this.pos.copy();
         }
 
-        // Explosión
+        // BUTTON A
+
         if (painter.rxData.btnA) {
 
             this.pos.add(
@@ -1147,13 +1146,15 @@ class Particle {
         stroke(
 
             c[0],
+
             c[1],
+
             c[2],
+
             this.alpha
         );
 
         strokeWeight(
-
             painter.oscControls
                 .sizeMultiplier
         );
@@ -1161,9 +1162,11 @@ class Particle {
         line(
 
             this.prev.x,
+
             this.prev.y,
 
             this.pos.x,
+
             this.pos.y
         );
     }
