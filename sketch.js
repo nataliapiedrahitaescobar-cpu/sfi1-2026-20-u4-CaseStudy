@@ -555,9 +555,9 @@ function draw() {
 
 function drawRunning() {
 
-    push();
+    background(0, 20);
 
-    // CAMERA SHAKE
+    push();
 
     translate(
 
@@ -574,53 +574,15 @@ function drawRunning() {
 
     painter.cameraShake *= 0.9;
 
-    // BACKGROUND FADE
-
-    background(0, 30);
-
-    // ============================================
-    // PROCESS STRUDEL
-    // ============================================
-
-    painter.processStrudel();
-
-    // ============================================
-    // OSC RAINBOW MODE
-    // ============================================
-
-    if (
-        painter.oscControls.rainbowMode
-    ) {
-
-        colorMode(HSB);
-
-        let hue =
-            (frameCount * 2) % 255;
-
-        background(
-            hue,
-            120,
-            30,
-            0.04
-        );
-
-        colorMode(RGB);
-    }
-
-    // ============================================
     // PARTICLES
-    // ============================================
 
     for (let p of particles) {
 
         p.update();
-
         p.draw();
     }
 
-    // ============================================
-    // ANIMATIONS
-    // ============================================
+    // ANIMACIONES
 
     let now = Date.now();
 
@@ -644,7 +606,7 @@ function drawRunning() {
         let progress =
             elapsed / anim.duration;
 
-        if (progress <= 1.0) {
+        if (progress <= 1) {
 
             dibujarElemento(
                 anim,
@@ -653,10 +615,7 @@ function drawRunning() {
 
         } else {
 
-            painter.activeAnimations.splice(
-                i,
-                1
-            );
+            painter.activeAnimations.splice(i, 1);
         }
     }
 
