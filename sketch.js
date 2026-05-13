@@ -342,37 +342,29 @@ void main(){
 `;
 
 const fragShader = `
-
 precision mediump float;
 
 uniform vec2 u_resolution;
-
 uniform float u_time;
 
-void main(){
+void main() {
 
-    vec2 st =
-        gl_FragCoord.xy / u_resolution;
+    vec2 st = gl_FragCoord.xy / u_resolution;
 
     float wave =
-
         sin(st.x * 8.0 + u_time * 1.5) *
-
         cos(st.y * 8.0 + u_time * 1.5);
 
     float glow = abs(wave);
 
     vec3 color = vec3(
-
-        glow * 0.3,
-
-        glow * 0.1,
-
-        glow * 0.5
+        0.3 + glow * 0.2,
+        0.0 + glow * 0.1,
+        0.4 + glow * 0.2
     );
 
-    gl_FragColor =
-        vec4(color, 0.12);
+    // Mucho más transparente
+    gl_FragColor = vec4(color, 0.035);
 }
 `;
 
@@ -507,35 +499,30 @@ function draw() {
 // ============================================
 // DRAW RUNNING
 // ============================================
-
 function drawRunning() {
+
+    // =========================
+    // CAMERA SHAKE
+    // =========================
 
     push();
 
-    // CAMERA SHAKE
-
     translate(
-
-        random(
-            -painter.cameraShake,
-            painter.cameraShake
-        ),
-
-        random(
-            -painter.cameraShake,
-            painter.cameraShake
-        )
+        random(-painter.cameraShake, painter.cameraShake),
+        random(-painter.cameraShake, painter.cameraShake)
     );
 
     painter.cameraShake *= 0.9;
 
-    // BACKGROUND FADE
+    // =========================
+    // FONDO
+    // =========================
 
-    background(0, 20);
+    background(0, 25);
 
-    // ============================================
+    // =========================
     // SHADER
-    // ============================================
+    // =========================
 
     shaderLayer.clear();
 
@@ -553,107 +540,92 @@ function drawRunning() {
 
     shaderLayer.noStroke();
 
-    shaderLayer.rect(
+    shaderLayer.push();
 
+    shaderLayer.translate(
         -width / 2,
-
-        -height / 2,
-
-        width,
-
-        height
+        -height / 2
     );
 
-    tint(255, 80);
+    // Shader MÁS PEQUEÑO
+    shaderLayer.rect(
+        width * 0.25,
+        height * 0.25,
+        width * 0.5,
+        height * 0.5
+    );
 
+    shaderLayer.pop();
+
+    // IMPORTANTE:
+    // El shader se dibuja PRIMERO
     image(shaderLayer, 0, 0);
 
-    noTint();
-
-    // ============================================
-    // STRUDEL
-    // ============================================
+    // =========================
+    // PROCESAR STRUDEL
+    // =========================
 
     painter.processStrudel();
 
-    // ============================================
-    // OSC MODE
-    // ============================================
+    // =========================
+    // OSC RAINBOW MODE
+    // =========================
 
-    if (
-        painter.oscControls.rainbowMode
-    ) {
+    if(painter.oscControls.rainbowMode) {
 
         colorMode(HSB);
 
-        let hue =
-            (frameCount * 2) % 255;
+        let hue = (frameCount * 2) % 255;
 
-        background(
-            hue,
-            120,
-            30,
-            0.05
-        );
+        background(hue, 120, 30, 0.03);
 
         colorMode(RGB);
     }
 
-    // ============================================
+    // =========================
     // PARTICLES
-    // ============================================
+    // =========================
 
-    for (let p of particles) {
+    for(let p of particles){
 
         p.update();
-
         p.draw();
     }
 
-    // ============================================
-    // VISUALS
-    // ============================================
+    // =========================
+    // ANIMACIONES
+    // =========================
 
     let now = Date.now();
 
-    for (
-
-        let i =
-        painter.activeAnimations.length - 1;
-
+    for(
+        let i = painter.activeAnimations.length - 1;
         i >= 0;
-
         i--
-
     ) {
 
-        let anim =
-            painter.activeAnimations[i];
+        let anim = painter.activeAnimations[i];
 
-        let elapsed =
-            now - anim.startTime;
+        let elapsed = now - anim.startTime;
 
-        let progress =
-            elapsed / anim.duration;
+        let progress = elapsed / anim.duration;
 
-        if (progress <= 1.0) {
+        if(progress <= 1.0) {
 
-            dibujarElemento(
-                anim,
-                progress
-            );
+            dibujarElemento(anim, progress);
 
         } else {
 
-            painter.activeAnimations.splice(
-                i,
-                1
-            );
+            painter.activeAnimations.splice(i, 1);
         }
     }
 
     pop();
 }
+
+
+    
+
 
 // ============================================
 // VISUAL MAP
