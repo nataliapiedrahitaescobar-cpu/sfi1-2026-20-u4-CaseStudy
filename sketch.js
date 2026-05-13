@@ -11,7 +11,7 @@ const EVENTS = {
 };
 
 // ============================================
-// FSM TASK
+// PAINTER TASK
 // ============================================
 
 class PainterTask extends FSMTask {
@@ -24,41 +24,48 @@ class PainterTask extends FSMTask {
 
         this.lineSize = 100;
 
-        this.angle = 0;
-
-        this.clickPosX = 0;
-        this.clickPosY = 0;
-
         this.cameraShake = 0;
 
         this.rxData = {
+
             x: 0,
             y: 0,
+
             btnA: false,
             btnB: false,
+
             prevA: false,
             prevB: false,
+
             ready: false,
         };
 
         // STRUDEL
+
         this.eventQueue = [];
+
         this.activeAnimations = [];
 
         this.LATENCY_CORRECTION = 0;
 
         // OSC
+
         this.oscControls = {
+
             rgb: [255, 0, 80],
+
             sizeMultiplier: 1,
+
             rainbowMode: false
         };
 
-        this.transitionTo(this.estado_esperando);
+        this.transitionTo(
+            this.estado_esperando
+        );
     }
 
     // ============================================
-    // ESTADOS
+    // ESTADO ESPERANDO
     // ============================================
 
     estado_esperando = (ev) => {
@@ -67,14 +74,24 @@ class PainterTask extends FSMTask {
 
             cursor();
 
-            console.log("Waiting for connection...");
+            console.log(
+                "Waiting for connection..."
+            );
         }
 
-        else if (ev.type === EVENTS.CONNECT) {
+        else if (
+            ev.type === EVENTS.CONNECT
+        ) {
 
-            this.transitionTo(this.estado_corriendo);
+            this.transitionTo(
+                this.estado_corriendo
+            );
         }
     };
+
+    // ============================================
+    // ESTADO CORRIENDO
+    // ============================================
 
     estado_corriendo = (ev) => {
 
@@ -84,20 +101,32 @@ class PainterTask extends FSMTask {
 
             background(0);
 
-            console.log("Sistema listo");
+            console.log(
+                "Sistema listo"
+            );
         }
 
-        else if (ev.type === EVENTS.DISCONNECT) {
+        else if (
+            ev.type === EVENTS.DISCONNECT
+        ) {
 
-            this.transitionTo(this.estado_esperando);
+            this.transitionTo(
+                this.estado_esperando
+            );
         }
 
-        else if (ev.type === EVENTS.DATA) {
+        else if (
+            ev.type === EVENTS.DATA
+        ) {
 
-            this.updateLogic(ev.payload);
+            this.updateLogic(
+                ev.payload
+            );
         }
 
-        else if (ev.type === "EXIT") {
+        else if (
+            ev.type === "EXIT"
+        ) {
 
             cursor();
         }
@@ -130,9 +159,13 @@ class PainterTask extends FSMTask {
         this.rxData.btnA = data.btnA;
         this.rxData.btnB = data.btnB;
 
-        if (!this.rxData.btnA && !this.rxData.prevA) {
+        if (
+            !this.rxData.btnA &&
+            !this.rxData.prevA
+        ) {
 
-            this.lineSize = random(50, 160);
+            this.lineSize =
+                random(50, 160);
 
             this.c = color(
                 random(255),
@@ -141,8 +174,11 @@ class PainterTask extends FSMTask {
             );
         }
 
-        this.rxData.prevA = this.rxData.btnA;
-        this.rxData.prevB = this.rxData.btnB;
+        this.rxData.prevA =
+            this.rxData.btnA;
+
+        this.rxData.prevB =
+            this.rxData.btnB;
     }
 
     // ============================================
@@ -168,15 +204,18 @@ class PainterTask extends FSMTask {
         this.eventQueue.push({
 
             timestamp:
-                data.timestamp + this.timeOffset,
+                data.timestamp +
+                this.timeOffset,
 
             sound: params.s,
 
-            delta: params.delta || 0.25
+            delta:
+                params.delta || 0.25
         });
 
         this.eventQueue.sort(
-            (a, b) => a.timestamp - b.timestamp
+            (a, b) =>
+                a.timestamp - b.timestamp
         );
     }
 
@@ -188,9 +227,13 @@ class PainterTask extends FSMTask {
 
         if (!data.payload) return;
 
-        const address = data.payload.address;
+        const address =
+            data.payload.address;
 
-        const args = data.payload.args || [];
+        const args =
+            data.payload.args || [];
+
+        // RGB
 
         if (address === "/rgb_1") {
 
@@ -204,11 +247,15 @@ class PainterTask extends FSMTask {
             ];
         }
 
+        // SIZE
+
         if (address === "/size") {
 
             this.oscControls.sizeMultiplier =
                 Number(args[0] || 1);
         }
+
+        // RAINBOW
 
         if (address === "/rainbow") {
 
@@ -218,7 +265,7 @@ class PainterTask extends FSMTask {
     }
 
     // ============================================
-    // STRUDEL PROCESS
+    // PROCESS STRUDEL
     // ============================================
 
     processStrudel() {
@@ -229,7 +276,8 @@ class PainterTask extends FSMTask {
         ) return;
 
         let now =
-            Date.now() + this.LATENCY_CORRECTION;
+            Date.now() +
+            this.LATENCY_CORRECTION;
 
         while (
 
@@ -238,7 +286,8 @@ class PainterTask extends FSMTask {
 
         ) {
 
-            let ev = this.eventQueue.shift();
+            let ev =
+                this.eventQueue.shift();
 
             if (!ev.sound) continue;
 
@@ -246,7 +295,8 @@ class PainterTask extends FSMTask {
 
                 startTime: now,
 
-                duration: ev.delta * 1200,
+                duration:
+                    ev.delta * 1200,
 
                 type: ev.sound,
 
@@ -260,12 +310,17 @@ class PainterTask extends FSMTask {
                     height * 0.8
                 ),
 
-                color: getColorForSound(ev.sound)
+                color:
+                    getColorForSound(
+                        ev.sound
+                    )
             });
 
-            // CAMERA SHAKE
+            // KICK SHAKE
 
-            if (ev.sound === "tr909bd") {
+            if (
+                ev.sound === "tr909bd"
+            ) {
 
                 this.cameraShake = 15;
             }
@@ -280,13 +335,18 @@ class PainterTask extends FSMTask {
 
             ) {
 
-                for (let i = 0; i < 30; i++) {
+                for (
+                    let i = 0;
+                    i < 30;
+                    i++
+                ) {
 
                     this.activeAnimations.push({
 
                         startTime: now,
 
-                        duration: random(300, 900),
+                        duration:
+                            random(300, 900),
 
                         type: "explosion",
 
@@ -310,7 +370,7 @@ class PainterTask extends FSMTask {
 }
 
 // ============================================
-// SKETCH
+// VARIABLES
 // ============================================
 
 let painter;
@@ -319,54 +379,9 @@ let bridge;
 
 let connectBtn;
 
-let shaderLayer;
-
-let glowShader;
-
 const renderer = new Map();
 
 let particles = [];
-
-// ============================================
-// SHADERS
-// ============================================
-
-const vertexShader = `
-
-attribute vec3 aPosition;
-
-void main(){
-
-    gl_Position = vec4(aPosition, 1.0);
-}
-`;
-
-const fragShader = `
-precision mediump float;
-
-uniform vec2 u_resolution;
-uniform float u_time;
-
-void main() {
-
-    vec2 st = gl_FragCoord.xy / u_resolution;
-
-    float wave =
-        sin(st.x * 8.0 + u_time * 1.5) *
-        cos(st.y * 8.0 + u_time * 1.5);
-
-    float glow = abs(wave);
-
-    vec3 color = vec3(
-        0.3 + glow * 0.2,
-        0.0 + glow * 0.1,
-        0.4 + glow * 0.2
-    );
-
-    // Mucho más transparente
-    gl_FragColor = vec4(color, 0.035);
-}
-`;
 
 // ============================================
 // SETUP
@@ -383,22 +398,13 @@ function setup() {
 
     background(0);
 
-    // SHADER LAYER
-
-    shaderLayer = createGraphics(
-        windowWidth,
-        windowHeight,
-        WEBGL
-    );
-
-    glowShader = shaderLayer.createShader(
-        vertexShader,
-        fragShader
-    );
-
     // PARTICLES
 
-    for (let i = 0; i < 800; i++) {
+    for (
+        let i = 0;
+        i < 800;
+        i++
+    ) {
 
         particles.push(
             new Particle()
@@ -420,41 +426,71 @@ function setup() {
 
     connectBtn.position(10, 10);
 
+    // CONNECT
+
     bridge.onConnect(() => {
 
-        console.log("Bridge conectado");
+        console.log(
+            "Bridge conectado"
+        );
 
-        connectBtn.html("Desconectar");
+        connectBtn.html(
+            "Desconectar"
+        );
 
         painter.postEvent({
+
             type: EVENTS.CONNECT
         });
     });
 
+    // DISCONNECT
+
     bridge.onDisconnect(() => {
 
-        console.log("Bridge desconectado");
+        console.log(
+            "Bridge desconectado"
+        );
 
-        connectBtn.html("Conectar");
+        connectBtn.html(
+            "Conectar"
+        );
 
         painter.postEvent({
+
             type: EVENTS.DISCONNECT
         });
     });
 
+    // DATA
+
     bridge.onData((data) => {
 
-        if (data.type === "strudel") {
+        // STRUDEL
 
-            painter.handleStrudel(data);
+        if (
+            data.type === "strudel"
+        ) {
+
+            painter.handleStrudel(
+                data
+            );
         }
 
-        else if (data.type === "osc") {
+        // OSC
+
+        else if (
+            data.type === "osc"
+        ) {
 
             painter.handleOSC(data);
         }
 
-        else if (data.type === "microbit") {
+        // MICROBIT
+
+        else if (
+            data.type === "microbit"
+        ) {
 
             painter.postEvent({
 
@@ -464,6 +500,8 @@ function setup() {
             });
         }
     });
+
+    // BOTÓN
 
     connectBtn.mousePressed(() => {
 
@@ -499,133 +537,116 @@ function draw() {
 // ============================================
 // DRAW RUNNING
 // ============================================
-function drawRunning() {
 
-    // =========================
-    // CAMERA SHAKE
-    // =========================
+function drawRunning() {
 
     push();
 
+    // CAMERA SHAKE
+
     translate(
-        random(-painter.cameraShake, painter.cameraShake),
-        random(-painter.cameraShake, painter.cameraShake)
+
+        random(
+            -painter.cameraShake,
+            painter.cameraShake
+        ),
+
+        random(
+            -painter.cameraShake,
+            painter.cameraShake
+        )
     );
 
     painter.cameraShake *= 0.9;
 
-    // =========================
-    // FONDO
-    // =========================
+    // BACKGROUND FADE
 
     background(0, 25);
 
-    // =========================
-    // SHADER
-    // =========================
-
-    shaderLayer.clear();
-
-    shaderLayer.shader(glowShader);
-
-    glowShader.setUniform(
-        "u_resolution",
-        [width, height]
-    );
-
-    glowShader.setUniform(
-        "u_time",
-        millis() * 0.001
-    );
-
-    shaderLayer.noStroke();
-
-    shaderLayer.push();
-
-    shaderLayer.translate(
-        -width / 2,
-        -height / 2
-    );
-
-    // Shader MÁS PEQUEÑO
-    shaderLayer.rect(
-        width * 0.25,
-        height * 0.25,
-        width * 0.5,
-        height * 0.5
-    );
-
-    shaderLayer.pop();
-
-    // IMPORTANTE:
-    // El shader se dibuja PRIMERO
-    image(shaderLayer, 0, 0);
-
-    // =========================
-    // PROCESAR STRUDEL
-    // =========================
+    // ============================================
+    // PROCESS STRUDEL
+    // ============================================
 
     painter.processStrudel();
 
-    // =========================
+    // ============================================
     // OSC RAINBOW MODE
-    // =========================
+    // ============================================
 
-    if(painter.oscControls.rainbowMode) {
+    if (
+        painter.oscControls.rainbowMode
+    ) {
 
         colorMode(HSB);
 
-        let hue = (frameCount * 2) % 255;
+        let hue =
+            (frameCount * 2) % 255;
 
-        background(hue, 120, 30, 0.03);
+        background(
+            hue,
+            120,
+            30,
+            0.04
+        );
 
         colorMode(RGB);
     }
 
-    // =========================
+    // ============================================
     // PARTICLES
-    // =========================
+    // ============================================
 
-    for(let p of particles){
+    for (let p of particles) {
 
         p.update();
+
         p.draw();
     }
 
-    // =========================
-    // ANIMACIONES
-    // =========================
+    // ============================================
+    // ANIMATIONS
+    // ============================================
 
     let now = Date.now();
 
-    for(
-        let i = painter.activeAnimations.length - 1;
+    for (
+
+        let i =
+            painter.activeAnimations.length - 1;
+
         i >= 0;
+
         i--
+
     ) {
 
-        let anim = painter.activeAnimations[i];
+        let anim =
+            painter.activeAnimations[i];
 
-        let elapsed = now - anim.startTime;
+        let elapsed =
+            now - anim.startTime;
 
-        let progress = elapsed / anim.duration;
+        let progress =
+            elapsed / anim.duration;
 
-        if(progress <= 1.0) {
+        if (progress <= 1.0) {
 
-            dibujarElemento(anim, progress);
+            dibujarElemento(
+                anim,
+                progress
+            );
 
         } else {
 
-            painter.activeAnimations.splice(i, 1);
+            painter.activeAnimations.splice(
+                i,
+                1
+            );
         }
     }
 
     pop();
 }
-
-
-    
-
 
 // ============================================
 // VISUAL MAP
@@ -667,13 +688,21 @@ function dibujarElemento(anim, p) {
 
 function dibujarBombo(anim, p, c) {
 
-    let d = lerp(100, 700, p);
+    let d =
+        lerp(100, 700, p);
 
-    let alpha = lerp(255, 0, p);
+    let alpha =
+        lerp(255, 0, p);
 
     noStroke();
 
-    for (let i = 0; i < 6; i++) {
+    // GLOW
+
+    for (
+        let i = 0;
+        i < 6;
+        i++
+    ) {
 
         fill(
             c[0],
@@ -691,6 +720,8 @@ function dibujarBombo(anim, p, c) {
             d + i * 40
         );
     }
+
+    // CORE
 
     fill(
         c[0],
@@ -767,7 +798,11 @@ function dibujarHiHat(anim, p, c) {
 
     strokeWeight(1);
 
-    for (let i = 0; i < 5; i++) {
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
 
         circle(
             anim.x,
@@ -800,21 +835,33 @@ function dibujarOpenHat(anim, p, c) {
 
     push();
 
-    translate(anim.x, anim.y);
+    translate(
+        anim.x,
+        anim.y
+    );
 
     rotate(p * TWO_PI);
 
     for (
+
         let a = 0;
         a < TWO_PI;
         a += PI / 6
+
     ) {
 
-        let x = cos(a) * len;
+        let x =
+            cos(a) * len;
 
-        let y = sin(a) * len;
+        let y =
+            sin(a) * len;
 
-        line(0, 0, x, y);
+        line(
+            0,
+            0,
+            x,
+            y
+        );
     }
 
     pop();
@@ -832,7 +879,10 @@ function dibujarDefault(anim, p, c) {
     let angle =
         p * TWO_PI;
 
-    translate(anim.x, anim.y);
+    translate(
+        anim.x,
+        anim.y
+    );
 
     rotate(angle);
 
@@ -919,7 +969,12 @@ function dibujarExplosion(anim, p, c) {
             sin(angle) *
             size;
 
-        line(x1, y1, x2, y2);
+        line(
+            x1,
+            y1,
+            x2,
+            y2
+        );
     }
 }
 
@@ -944,7 +999,10 @@ function getColorForSound(s) {
             [255, 150, 0]
     };
 
-    if (colors[s]) return colors[s];
+    if (colors[s]) {
+
+        return colors[s];
+    }
 
     let charCode =
         s.charCodeAt(0) || 0;
@@ -969,22 +1027,10 @@ function windowResized() {
         windowWidth,
         windowHeight
     );
-
-    shaderLayer = createGraphics(
-        windowWidth,
-        windowHeight,
-        WEBGL
-    );
-
-    glowShader =
-        shaderLayer.createShader(
-            vertexShader,
-            fragShader
-        );
 }
 
 // ============================================
-// PARTICLE
+// PARTICLES
 // ============================================
 
 class Particle {
@@ -1097,9 +1143,11 @@ class Particle {
                 this.pos.copy();
         }
 
-        // BUTTON A
+        // BOTÓN A
 
-        if (painter.rxData.btnA) {
+        if (
+            painter.rxData.btnA
+        ) {
 
             this.pos.add(
 
@@ -1127,6 +1175,7 @@ class Particle {
         );
 
         strokeWeight(
+
             painter.oscControls
                 .sizeMultiplier
         );
